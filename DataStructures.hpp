@@ -693,7 +693,7 @@ public:
 
     ~EmbediRingBuffer()
     {
-        if (this->headBufferAllocated)
+        if (this->heapBufferAllocated)
             basicAllocator.destroy(this->buffer);
     }
 
