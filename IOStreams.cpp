@@ -111,9 +111,7 @@ namespace SystemIO {
     char getchar()
     {
         if ( SystemIO::standardInp == nullptr )
-        {
             SystemIO::standardInp = allFiles.get_handle(SYSIN_NAME);
-        }
 
         return static_cast<char>(SystemIO::standardInp->read());
     }

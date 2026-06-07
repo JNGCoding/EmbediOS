@@ -78,6 +78,7 @@ struct StandardInput : public EmbediFileStream
     {
         this->descriptor = {"stdin", "", READ };
     }
+    
     u8 read() override;
     u32 read(u8* buffer, u32 size) override;
     u32 available() override;
