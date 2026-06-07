@@ -50,7 +50,7 @@ EmbediFileStream* FileTable::get_handle(const char* streamName)
 {
     for (u32 i = 0; i < this->count; i++)
     {
-        EmbediFileStream* stream = this->fileHandles[this->count];
+        EmbediFileStream* stream = this->fileHandles[i];
         if (strcmp(stream->descriptor.name, streamName) == 0)
             return stream;
     }
