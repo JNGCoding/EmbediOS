@@ -7,6 +7,8 @@
 
 struct Allocator
 {
+    virtual ~Allocator() = default;
+    
     virtual memptr alloc(u32 size)
     { return nullptr; }
     
@@ -16,8 +18,8 @@ struct Allocator
     virtual memptr reshape(memptr mem, u32 size)
     { return nullptr; }
 
-    virtual void dump(FileDescriptor* file)
-    { embedi_fprintf(file, "Allocator interface have no proper dump() method"); }
+    virtual void dump(const char* streamName)
+    { SystemIO::fprintf(streamName, "Allocator interface have no proper dump() method"); }
 };
 
 struct BasicAllocator : public Allocator
@@ -25,7 +27,7 @@ struct BasicAllocator : public Allocator
     memptr alloc(u32 size) override;
     bool  destroy(memptr mem) override;
     memptr reshape(memptr mem, u32 size) override;
-    void dump(FileDescriptor* file) override;
+    void dump(const char* streamName) override;
 };
 
 extern BasicAllocator basicAllocator;
@@ -49,7 +51,7 @@ public:
     void arena_free();
     const u32 get_current_allocated_blocks() const { return this->numBlocks; }
     const u32 get_current_allocated_memory() const { return this->numBlocks * this->blockSize; }
-    void dump(FileDescriptor* file) override;
+    void dump(const char* streamName) override;
 };
 
 class LinearAllocator : public Allocator
@@ -58,14 +60,16 @@ private:
     u8* buffer    = nullptr;
     u32 sp        = 0;
     const u32 cap = 0;
+    bool heapBufferAllocated = false;
 
 public:
     LinearAllocator(u8* buf, u32 cap_size);
+    ~LinearAllocator();
     memptr alloc(u32 size) override;
     bool  destroy(memptr mem) override;
     memptr reshape(memptr mem, u32 size) override;
     void buffer_free();
-    void dump(FileDescriptor* file) override;
+    void dump(const char* streamName) override;
 };
 
 class RandomAccessMemoryAllocator : public Allocator
@@ -74,13 +78,15 @@ private:
     const u32 capacity = 0;
     u32 objects = 0;
     u8* buffer = nullptr;
+    bool heapBufferAllocated = false;
 
 public:
     RandomAccessMemoryAllocator(u8* buf, const u32 cap_size);
+    ~RandomAccessMemoryAllocator();
     memptr alloc(u32 size) override;
     bool destroy(memptr mem) override;
     memptr reshape(memptr mem, u32 size) override;
-    void dump(FileDescriptor* file) override;
+    void dump(const char* streamName) override;
     void reset();
 };
 
@@ -97,7 +103,7 @@ public:
 //     memptr alloc(u32 size) override;
 //     bool  destroy(memptr mem) override;
 //     memptr reshape(memptr mem, u32 size) override;
-//     void dump(FileDescriptor* file) override;
+//     void dump(const char* streamName) override;
 // };
 
 #endif

@@ -27,9 +27,9 @@ memptr BasicAllocator::reshape(memptr mem, u32 size)
     else return nullptr;
 }
 
-void BasicAllocator::dump(FileDescriptor* file)
+void BasicAllocator::dump(const char* streamName)
 {
-    embedi_fprintf(file, "Basic Allocator have no proper dump() method");
+    SystemIO::fprintf(streamName, "Basic Allocator have no proper dump() method");
 }
 
 BasicAllocator basicAllocator;
@@ -84,7 +84,7 @@ memptr ArenaAllocator::alloc(u32 size)
     {
         if (!this->arena_alloc_block())
         {
-            embedi_perror("[ArenaAllocator::alloc(u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
+            SystemIO::perror("[ArenaAllocator::alloc(u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
             return nullptr;
         }
     }
@@ -98,7 +98,7 @@ memptr ArenaAllocator::alloc(u32 size)
     {
         if (!this->arena_alloc_block())
         {
-            embedi_perror("[ArenaAllocator::alloc(u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
+            SystemIO::perror("[ArenaAllocator::alloc(u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
             return nullptr;
         }
     }
@@ -111,13 +111,13 @@ memptr ArenaAllocator::alloc(u32 size)
 
 bool ArenaAllocator::destroy(memptr mem)
 {
-    embedi_perror("[ArenaAllocator::destroy(memptr)] ERROR: destroy() method not implemented");
+    SystemIO::perror("[ArenaAllocator::destroy(memptr)] ERROR: destroy() method not implemented");
     return false;
 }
 
 memptr ArenaAllocator::reshape(memptr mem, u32 size)
 {
-    embedi_perror("[ArenaAllocator::destroy(memptr)] ERROR: reshape() method not implemented");
+    SystemIO::perror("[ArenaAllocator::destroy(memptr)] ERROR: reshape() method not implemented");
     return nullptr;
 }
 
@@ -168,16 +168,16 @@ void ArenaAllocator::arena_free()
     }
 }
 
-void ArenaAllocator::dump(FileDescriptor *file)
+void ArenaAllocator::dump(const char* streamName)
 {
-    embedi_fprintf(file, "ArenaAllocator{\n\tblock size = %u\ntotal blocks = %u\n\n", this->blockSize, this->numBlocks);
+    SystemIO::fprintf(streamName, "ArenaAllocator{\n\tblock size = %u\ntotal blocks = %u\n\n", this->blockSize, this->numBlocks);
     if (this->blocks != nullptr)
     {
-        embedi_fprintf(file, "blocks:\n");
+        SystemIO::fprintf(streamName, "blocks:\n");
         for (u32 i = 0; i < this->numBlocks; i++)
-            embedi_fprintf(file, "\tblock{%u}: %p\n", i, this->blocks[i]);
+            SystemIO::fprintf(streamName, "\tblock{%u}: %p\n", i, this->blocks[i]);
     }
-    embedi_fprintf(file, "}\n");
+    SystemIO::fprintf(streamName, "}\n");
 }
 
 // ------------------------------ LINEAR ALLOCATOR ------------------------------
@@ -185,12 +185,19 @@ LinearAllocator::LinearAllocator(u8* buf, u32 cap_size) : cap(cap_size)
 {
     if (this->buffer == nullptr)
     {
-        embedi_perror("[LinearAllocator::LinearAllocator(u8*, u32)] ERROR: NULLPTR PASSED, CREATING BUFFER ON BASIC ALLOCATOR");
+        SystemIO::perror("[LinearAllocator::LinearAllocator(u8*, u32)] ERROR: NULLPTR PASSED, CREATING BUFFER ON BASIC ALLOCATOR");
 
         this->buffer = static_cast<u8*>(basicAllocator.alloc(this->cap));
         assert(this->buffer != nullptr && "[LinearAllocator::LinearAllocator(u32)] FATAL ERROR: MEMORY ALLOCATION FAILED");
+        this->heapBufferAllocated = true;
     }
     else this->buffer = buf;
+}
+
+LinearAllocator::~LinearAllocator()
+{
+    if (this->heapBufferAllocated)
+        basicAllocator.destroy(this->buffer);
 }
 
 memptr LinearAllocator::alloc(u32 size)
@@ -210,13 +217,13 @@ memptr LinearAllocator::alloc(u32 size)
 
 bool LinearAllocator::destroy(memptr mem)
 {
-    embedi_perror("[LinearAllocator::destroy(memptr)] ERROR: destroy() method not implemented");
+    SystemIO::perror("[LinearAllocator::destroy(memptr)] ERROR: destroy() method not implemented");
     return false;
 }
 
 memptr LinearAllocator::reshape(memptr mem, u32 size)
 {
-    embedi_perror("[LinearAllocator::destroy(memptr)] ERROR: reshape() method not implemented");
+    SystemIO::perror("[LinearAllocator::destroy(memptr)] ERROR: reshape() method not implemented");
     return nullptr;
 }
 
@@ -225,12 +232,12 @@ void LinearAllocator::buffer_free()
     this->sp = 0;
 }
 
-void LinearAllocator::dump(FileDescriptor* file)
+void LinearAllocator::dump(const char* streamName)
 {
-    embedi_fprintf(file, "LinearAllocator{\n\t");
+    SystemIO::fprintf(streamName, "LinearAllocator{\n\t");
     for (u32 i = 0; i < min(64UL, this->cap); i++)
-        embedi_fprintf(file, "%u\n", this->buffer[i]);
-    embedi_fprintf(file, "}");
+        SystemIO::fprintf(streamName, "%u\n", this->buffer[i]);
+    SystemIO::fprintf(streamName, "}");
 }
 
 // ------------------------------ RANDOM ACCESS MEMORY ALLOCATOR ------------------------------
@@ -249,7 +256,20 @@ inline void write_u32(u8* ptr, u32 sz32)
 
 RandomAccessMemoryAllocator::RandomAccessMemoryAllocator(u8* buf, const u32 cap_size) : capacity(cap_size)
 {
+    if (buf == nullptr)
+    {
+        this->buffer = static_cast<u8*>( basicAllocator.alloc(cap_size) );
+        assert(this->buffer != nullptr && "[RandomAccessMemoryAllocator::RandomAccessMemoryAllocator(u8*, u32)] FATAL ERROR: FAILED TO ALLOCATE MEMORY CHUNK");
+        this->heapBufferAllocated = true;
+    }
     this->buffer = buf;
+    
+}
+
+RandomAccessMemoryAllocator::~RandomAccessMemoryAllocator()
+{
+    if (this->heapBufferAllocated)
+        basicAllocator.destroy(this->buffer);
 }
 
 memptr RandomAccessMemoryAllocator::alloc(u32 size)
@@ -319,12 +339,12 @@ memptr RandomAccessMemoryAllocator::reshape(memptr mem, u32 size)
     return nullptr;
 }
 
-void RandomAccessMemoryAllocator::dump(FileDescriptor* file)
+void RandomAccessMemoryAllocator::dump(const char* streamName)
 {
-    embedi_fprintf(file, "Heap dump (first %u bytes) - ", 64UL);
+    SystemIO::fprintf(streamName, "Heap dump (first %u bytes) - ", 64UL);
     for (size_t i = 0; i < min(64UL, this->capacity); i++)
-    { embedi_fprintf(file, "%u ", buffer[i]); }
-    embedi_fprintf(file, "\nObjects: %u\n", this->objects);
+    { SystemIO::fprintf(streamName, "%u ", buffer[i]); }
+    SystemIO::fprintf(streamName, "\nObjects: %u\n", this->objects);
 }
 
 void RandomAccessMemoryAllocator::reset()

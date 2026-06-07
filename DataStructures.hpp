@@ -373,23 +373,348 @@ public:
             this->remove(this->count - 1);
     }
 
-    u32 size()
-    { return this->count; }
+    // Can't take const reference since, we have to iterate over the list
+    // So we have to take control of the head* pointers of the list
+    bool equals(EmbediList& other)
+    {
+        if (this->size() != other.count)
+            return false;
+
+        bool flag = true;
+
+        ListNode* temp_top = this->head;
+        ListNode* other_temp_top = other.head;
+
+        this->head = this->tail;
+        other.head = other.tail;
+
+        for (u32 i = 0; i < this->size(); i++)
+        {
+            if (this->head->value != other.head->value)
+            {
+                flag = false;
+                break;
+            }
+        }
+
+        this->head = temp_top;
+        other.head = other_temp_top;
+
+        return flag;
+    }
+
+    u32 size() const
+    {
+        return this->count;
+    }
 
     ListNode* get_tail()
-    { return this->tail; }
+    {
+        return this->tail;
+    }
 
     ListNode* get_head()
-    { return this->head; }
+    {
+        return this->head;
+    }
 };
 
 // Generic Static Stack data structure
 template<typename T>
-class Stack
+class EmbediStack
 {
 private:
-    T* buffer;
-    
+    T* buffer = nullptr;
+    u32 count = 0;
+    const u32 capacity;
+    bool heapBufferAllocated = false;
+
+public:
+    EmbediStack(T* buf, const u32 cap_size) : capacity(cap_size)
+    {
+        if (buf == nullptr)
+        {
+            this->buffer = static_cast<T*>(basicAllocator.alloc(sizeof(T) * cap_size));
+            assert(this->buffer != nullptr && "[Stack::Stack(T*, u32)] FATAL ERROR: FAILED TO ALLOCATE BUFFER ON BASIC ALLOCATOR");
+            this->heapBufferAllocated = true;
+        }
+        else this->buffer = buf;
+    }
+
+    ~EmbediStack()
+    {
+        if (this->heapBufferAllocated)
+            basicAllocator.destroy(this->buffer);
+    }
+
+    bool push(const T& element)
+    {
+        if (this->count >= this->capacity)
+            return false;
+
+        this->buffer[this->count++] = element;
+        return true;
+    }
+
+    T* pop()
+    {
+        if (this->count <= 0)
+            return nullptr;
+
+        return &this->buffer[(this->count--) - 1];
+    }
+
+    T* peek()
+    {
+        if (this->count <= 0)
+            return nullptr;
+
+        return &this->buffer[this->count - 1];
+    }
+
+    void clear()
+    {
+        this->count = 0;
+    }
+
+    u32 size() const
+    {
+        return this->count;
+    }
+
+    bool equals(const EmbediStack& other)
+    {
+        if (this->size() != other.size())
+            return false;
+
+        for (u32 i = 0; i < this->count; i++)
+        {
+            if (this->buffer[i] != other.buffer[i])
+                return false;
+        }
+
+        return true;
+    }
+};
+
+// Generic Dynamic Stack Data Structure based on an ArenaAllocator
+template<typename T>
+class EmbediDynamicStack
+{
+private:
+    using StackNode = DoublyNode<T>;
+
+    StackNode* head = nullptr;
+    u8 objectsInBlock = 0;
+    const u8 preaoc ;
+    u32 count = 0;
+
+    T* objBuffer = nullptr;
+
+    ArenaAllocator allocator;
+
+public:
+    explicit EmbediDynamicStack(const u8 preAllocationsObjectCount = 1) : preaoc(preAllocationsObjectCount), allocator(sizeof(StackNode) * preaoc)
+    {}
+
+    void copy(EmbediDynamicStack& other)
+    {
+        this->clear();
+
+        StackNode* other_temp_top = other.top;
+
+        while (other.top->root != nullptr)
+            other.top = other.top->root;
+
+        for (u32 i = 0; i < other.count; i++)
+        {
+            this->push( *other.top->value );
+            other.top = other.top->head;
+        }
+
+        other.top = other_temp_top;
+    }
+
+    ~EmbediDynamicStack()
+    {
+        this->allocator.arena_free();
+        if (this->objBuffer != nullptr)
+            basicAllocator.destroy(this->objBuffer);
+    }
+
+    bool push(const T& element)
+    {
+        if (this->top == nullptr)
+        {
+            if (this->top == nullptr)
+            {
+                this->top == static_cast<StackNode*>(this->allocator.alloc(sizeof(StackNode)));
+                if (this->top == nullptr)
+                    return false;
+
+                this->top->root = nullptr;
+                this->top->value = element;
+                this->top->head = nullptr;
+
+                this->count = 1;
+                this->objectsInBlock = 1;
+
+                return true;
+            }
+
+            // We are at the absolute top of stack
+            if (this->top->head == nullptr)
+            {
+                StackNode* my_node = static_cast<StackNode*>(this->allocator.alloc(sizeof(StackNode)));
+                if (my_node == nullptr)
+                    return false;
+
+                my_node->root = this->top;
+                my_node->value = element;
+                my_node->head = nullptr;
+
+                this->top->head = my_node;
+                this->top = my_node;
+                this->count++;
+            }
+            else
+            {
+                this->top = this->top->head;
+                this->top->value = element;
+                this->count++;
+            }
+
+            if (++this->objectsInBlock > this->preaoc) {
+                this->objectsInBlock = 0;
+            }
+
+            return true;
+        }
+    }
+
+    T* pop()
+    {
+        if (this->count <= 0)
+            return nullptr;
+
+        if (this->objBuffer == nullptr)
+            this->objBuffer = static_cast<T*>(basicAllocator.alloc(sizeof(T)));
+
+        memcpy(this->objBuffer, &this->top->value, sizeof(T));
+
+        this->top = this->top->root;
+        this->count--;
+
+        if (--this->objectsInBlock == 0)
+        {
+            this->allocator.free_block(false);
+            if (this->count <= 0)
+            {
+                this->objectsInBlock = 0;
+            }
+            else this->objectsInBlock = this->preaoc;
+        }
+
+        return this->objBuffer;
+    }
+
+    T* peek()
+    {
+        if (this->count <= 0)
+            return nullptr;
+        
+        return &this->top->value;
+    }
+
+    void clear()
+    {
+        this->objectsInBlock = 0;
+        this->count = 0;
+        this->allocator.arena_free();
+        this->top = nullptr;
+    }
+
+    bool equals(EmbediDynamicStack& other)
+    {
+        if (this->size() != other.size())
+            return false;
+
+        StackNode* temp_top = this->top;
+        StackNode* other_temp_top = other.top;
+
+        bool flag = true;
+        for (u32 i = 0; i < this->count; i++)
+        {
+            if (this->top->value != other.top->value)
+            {
+                flag = false;
+                break;
+            }
+
+            this->top = this->top->root;
+            other.top = other.top->root;
+        }
+
+        this->top = temp_top;
+        other.top = other_temp_top;
+
+        return flag;
+    }
+
+    u32 size() const
+    {
+        return this->count;
+    }
+};
+
+template<typename T>
+class EmbediRingBuffer
+{
+private:
+    T* buffer = nullptr;
+    const u32 capacity;
+
+    u32 appendPtr = 0;
+    u32 readPtr = 0;
+
+    bool heapBufferAllocated = false;
+
+public:
+    explicit EmbediRingBuffer(T* buf, const u32 cap_size) : capacity(cap_size)
+    {
+        if (buf == nullptr)
+        {
+            this->buffer = static_cast<T*>(basicAllocator.alloc(sizeof(T) * cap_size));
+            this->heapBufferAllocated = true;
+            assert(this->buffer != nullptr && "[EmbediRingBuffer::EmbediRingBuffer(T*, u32)] FATAL ERROR: FAILED TO ALLOCATE BUFFER ON BASIC ALLOCATOR");
+        }
+        else this->buffer = buf;
+    }
+
+    ~EmbediRingBuffer()
+    {
+        if (this->headBufferAllocated)
+            basicAllocator.destroy(this->buffer);
+    }
+
+    void append(const T& element)
+    {
+    }
+
+    T* read()
+    {
+    }
+
+    u32 size() const
+    {
+        return readPtr;
+    }
+
+    void clear()
+    {
+        this->appendPtr = 0;
+        this->readPtr = 0;
+    }
 };
 
 #endif

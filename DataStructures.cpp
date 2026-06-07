@@ -10,14 +10,14 @@ inline char get_capital(char c) { return (c >= 97 && c <= 122) ? c - 32 : c; }
 
 EmbediString::EmbediString(Allocator* _allocator)
 {
-    assert(_allocator != nullptr && "[EmbediString::EmbediString()] FATAL ERROR: INVALID ALLOCATOR WAS PASSED");
+    assert(_allocator != nullptr && "[EmbediString::EmbediString()] FATAL ERROR: ALLOCATOR WAS NULL");
 
     this->allocator = _allocator;
 
     this->data = static_cast<char*>(this->allocator->alloc(1));
     if (this->data == nullptr)
     {
-        embedi_perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
+        SystemIO::perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
         return;
     }
 
@@ -27,11 +27,11 @@ EmbediString::EmbediString(Allocator* _allocator)
 
 EmbediString::EmbediString(const char* _data, Allocator* _allocator)
 {
-    assert(_allocator != nullptr && "[EmbediString::EmbediString()] FATAL ERROR: INVALID ALLOCATOR WAS PASSED");
+    assert(_allocator != nullptr && "[EmbediString::EmbediString(const char*)] FATAL ERROR: ALLOCATOR WAS NULL");
 
     if (_data == nullptr)
     {
-        embedi_perror("[EmbediString::EmbediString(const char*)] WARNING: NULLPTR WAS PASSED TO THE ARGUMENTS, CALLING DIFFERENT CONSTRUCTOR");
+        SystemIO::perror("[EmbediString::EmbediString(const char*)] WARNING: NULLPTR WAS PASSED TO THE ARGUMENTS, CALLING DIFFERENT CONSTRUCTOR");
 
         // EmbediString::EmbediString() body
         this->allocator = _allocator;
@@ -39,7 +39,7 @@ EmbediString::EmbediString(const char* _data, Allocator* _allocator)
         this->data = static_cast<char*>(this->allocator->alloc(1));
         if (this->data == nullptr)
         {
-            embedi_perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
+            SystemIO::perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
             return;
         }
 
@@ -55,7 +55,7 @@ EmbediString::EmbediString(const char* _data, Allocator* _allocator)
     this->data = static_cast<char*>(this->allocator->alloc(strsize));
     if (this->data == nullptr)
     {
-        embedi_perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
+        SystemIO::perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
         return;
     }
 
@@ -72,7 +72,7 @@ EmbediString::EmbediString(const EmbediString& str, Allocator* _allocator)
     this->data = static_cast<char*>(this->allocator->alloc(str.len));
     if (this->data == nullptr)
     {
-        embedi_perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
+        SystemIO::perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
         return;
     }
 

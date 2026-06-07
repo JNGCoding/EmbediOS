@@ -14,6 +14,9 @@ using u32   = uint32_t;
 using u64   = uint64_t;
 using usize = unsigned long long;
 
+using f32 = float;
+using f64 = double;
+
 using memptr = void*;
 
 #define getter(ret_type, name, variable) ret_type name() { return this->variable; }

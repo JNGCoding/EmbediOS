@@ -6,6 +6,9 @@
 void demo_pairs();
 void demo_strings();
 void demo_list();
+void demo_stack();
+void demo_dynamicstack();
+void demo_ringbuffer();
 
 void setup() {
     Serial.begin(115200);
@@ -122,6 +125,7 @@ void demo_list()
     };
 
     // Append items
+    Serial.println("Pushing elements to the list.");
     for (int i = 0; i < 15; i++)
         integerList.push(i);
 
@@ -129,20 +133,31 @@ void demo_list()
     print_list();
 
     // set operation
+    Serial.println("Setting index 0 to 1293.");
     integerList.set(1293, 0);
     print_list();
 
     // push but in middle of the list
+    Serial.println("Pushing element 12391 at index 3 of the list.");
     integerList.push(12391, 3);
     print_list();
 
     // remove from somewhere in the middle
+    Serial.println("Removing elements at index 6 and 4 of the list.");
     integerList.remove(6);
     integerList.remove(4);
     print_list();
 
     // Clear operation
+    Serial.print("Size of list before clear(): ");
+    Serial.println(integerList.size());
     integerList.clear();
     Serial.print("Size of list after clear(): ");
     Serial.println(integerList.size());
+}
+
+void demo_stack()
+{
+    int buffer[10];
+    EmbediStack<int> stack(buffer, 10);
 }

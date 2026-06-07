@@ -8,20 +8,16 @@ using CommandLineFunction = int(*)(int argc, const char* argv[]);
 
 struct CommandLine
 {
-    // Function Storage
-    // DLangHashtable<DLangString, CommandLineFunction> functions(LinearAllocator(), 10);
-
-    // Error code
-    enum
+    struct
     {
-        NO_ERROR,
-        FUNCTION_NOT_FOUND,
-        ERROR_ALLOCATION,
-    } error_code = NO_ERROR;
+        int argc;
+        char* argv[];
+        CommandLineFunction function;
+    } LoadedFunction;
 
-    int latest_return_code = 0;
-
-    void trigger(const char* command);
+    // Function Storage
+    bool load_function(const char* command);
+    int run_function();
 };
 
 #endif
