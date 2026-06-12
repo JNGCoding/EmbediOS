@@ -1,109 +1,143 @@
 #ifndef __EMBEDI_ALLOCATOR_HPP__
 #define __EMBEDI_ALLOCATOR_HPP__
 
+#include <Arduino.h>
 #include "TypeMacros.hpp"
 #include "IOStreams.hpp"
 #include <stdlib.h>
 
-struct Allocator
+#ifndef __AVR__
+#include <assert.h>
+#else
+#define assert(expr) ((expr) ? (void)0 : abort())
+#endif
+
+struct EmbediAllocator
 {
-    virtual ~Allocator() = default;
+    virtual ~EmbediAllocator() = default;
     
-    virtual memptr alloc(u32 size)
+    virtual TypeMacros::memptr alloc(TypeMacros::u32 size)
     { return nullptr; }
     
-    virtual bool  destroy(memptr mem)
+    virtual bool  destroy(TypeMacros::memptr mem)
     { return true; }
     
-    virtual memptr reshape(memptr mem, u32 size)
+    virtual TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
     { return nullptr; }
 
     virtual void dump(const char* streamName)
     { SystemIO::fprintf(streamName, "Allocator interface have no proper dump() method"); }
 };
 
-struct BasicAllocator : public Allocator
+struct EmbediBasicAllocator : public EmbediAllocator
 {
-    memptr alloc(u32 size) override;
-    bool  destroy(memptr mem) override;
-    memptr reshape(memptr mem, u32 size) override;
+    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
+    bool  destroy(TypeMacros::memptr mem) override;
+    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
     void dump(const char* streamName) override;
 };
 
-extern BasicAllocator basicAllocator;
+extern EmbediBasicAllocator basicAllocator;
 
-class ArenaAllocator : public Allocator
+// TODO: Input an allocator parameter to this allocator
+// So that it can allocate from a pre-allocated buffer instead from the system
+// directly
+class EmbediArenaAllocator : public EmbediAllocator
 {
 private:
-    const u32 blockSize = 0;
-    u32 numBlocks       = 0;
-    u32 allocPointer    = 0;
-    memptr* blocks       = nullptr;
+    const TypeMacros::u32 blockSize = 0;
+    TypeMacros::u32 numBlocks       = 0;
+    TypeMacros::u32 allocPointer    = 0;
+    TypeMacros::memptr* blocks      = nullptr;
     bool arena_alloc_block();
 
 public:
-    ArenaAllocator(u32 _blockSize);
-    ~ArenaAllocator();
-    memptr alloc(u32 size) override;
-    bool  destroy(memptr mem) override;
-    memptr reshape(memptr mem, u32 size) override;
+    EmbediArenaAllocator(TypeMacros::u32 _blockSize);
+    ~EmbediArenaAllocator();
+    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
+    bool  destroy(TypeMacros::memptr mem) override;
+    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
     bool free_block(bool pseudo = false);
     void arena_free();
-    const u32 get_current_allocated_blocks() const { return this->numBlocks; }
-    const u32 get_current_allocated_memory() const { return this->numBlocks * this->blockSize; }
+    TypeMacros::u32 get_current_allocated_blocks() const { return this->numBlocks; }
+    TypeMacros::u32 get_current_allocated_memory() const { return this->numBlocks * this->blockSize; }
     void dump(const char* streamName) override;
 };
 
-class LinearAllocator : public Allocator
+class EmbediLinearAllocator : public EmbediAllocator
 {
 private:
     u8* buffer    = nullptr;
-    u32 sp        = 0;
-    const u32 cap = 0;
+    TypeMacros::u32 sp        = 0;
+    const TypeMacros::u32 cap = 0;
     bool heapBufferAllocated = false;
 
 public:
-    LinearAllocator(u8* buf, u32 cap_size);
-    ~LinearAllocator();
-    memptr alloc(u32 size) override;
-    bool  destroy(memptr mem) override;
-    memptr reshape(memptr mem, u32 size) override;
+    EmbediLinearAllocator(u8* buf, TypeMacros::u32 cap_size);
+    ~EmbediLinearAllocator();
+    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
+    bool  destroy(TypeMacros::memptr mem) override;
+    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
     void buffer_free();
     void dump(const char* streamName) override;
 };
 
-class RandomAccessMemoryAllocator : public Allocator
+class EmbediRandomAccessMemoryAllocator : public EmbediAllocator
 {
 private:
-    const u32 capacity = 0;
-    u32 objects = 0;
+    const TypeMacros::u32 capacity = 0;
+    TypeMacros::u32 objects = 0;
     u8* buffer = nullptr;
     bool heapBufferAllocated = false;
 
 public:
-    RandomAccessMemoryAllocator(u8* buf, const u32 cap_size);
-    ~RandomAccessMemoryAllocator();
-    memptr alloc(u32 size) override;
-    bool destroy(memptr mem) override;
-    memptr reshape(memptr mem, u32 size) override;
+    EmbediRandomAccessMemoryAllocator(u8* buf, const TypeMacros::u32 cap_size);
+    ~EmbediRandomAccessMemoryAllocator();
+    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
+    bool destroy(TypeMacros::memptr mem) override;
+    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
     void dump(const char* streamName) override;
     void reset();
 };
 
-// class PoolAllocator : public Allocator
-// {
-// private:
-//     struct {
-//         bool free;
-//         memptr memory;
-//     } *buffer;
+class EmbediPoolAllocator : public EmbediAllocator
+{
+private:
+    struct {
+        bool free;
+        TypeMacros::memptr memory;
+    } *buffer;
 
-// public:
-//     PoolAllocator(u32 block_size, u32 cap_size);
-//     memptr alloc(u32 size) override;
-//     bool  destroy(memptr mem) override;
-//     memptr reshape(memptr mem, u32 size) override;
-//     void dump(const char* streamName) override;
-// };
+public:
+    EmbediPoolAllocator(TypeMacros::memptr buffer_start, TypeMacros::u32 block_size, TypeMacros::u32 cap_size);
+    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
+    bool  destroy(TypeMacros::memptr mem) override;
+    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
+    void dump(const char* streamName) override;
+};
+
+template<TypeMacros::u32 bufferSize, TypeMacros::u32 heapAllocedSize, TypeMacros::u32 heapFreedSize>
+class EmbediHeapAllocator : public EmbediAllocator
+{
+private:
+    struct HeapChunk
+    {
+        TypeMacros::memptr ptr;
+        TypeMacros::u32 memsize;
+    };
+
+    u8 buffer[bufferSize] = {0};
+    HeapChunk chunks[heapAllocedSize];
+    HeapChunk freedChunks[heapFreedSize];
+
+    TypeMacros::u32 heapSize = 0;
+    TypeMacros::u32 heapAllocSize = 0;
+
+public:
+    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
+    bool  destroy(TypeMacros::memptr mem) override;
+    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
+    void dump(const char* streamName) override;
+};
 
 #endif

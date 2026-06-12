@@ -3,11 +3,4 @@
 
 #include "Application.hpp"
 
-struct HelloWorld : public Application
-{
-    int run(int argc, const char* argv[]) override;
-    void interrupt() override;
-    void signal(int sigint) override;
-};
-
 #endif

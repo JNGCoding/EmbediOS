@@ -3,17 +3,30 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include <stdarg.h>
 #include "TypeMacros.hpp"
+
+#ifndef __AVR__
+#include <assert.h>
+#else
+#define assert(expr) ((expr) ? (void)0 : abort())
+
+// I fuckin hate libc, and AVR libraries define them as fuckin macros
+// What the fuck, fucker gave me incomprehensible errors about redeclaration
+// That's why an #undef is put here
+#undef getchar
+
+#endif
 
 // At max how many files can be opened in the operating system simultaneously
 //
 // First 3 positions are reserved by stdout, stdin, syserr
-constexpr u32 MAX_FILE_HANDLES = 10;
+constexpr TypeMacros::u32 MAX_FILE_HANDLES = 10;
 
 // File Modes
-constexpr u8 READ   = 1 << 0;
-constexpr u8 WRITE  = 1 << 1;
-constexpr u8 APPEND = 1 << 2 | WRITE;
+constexpr TypeMacros::u8 READ   = 1 << 0;
+constexpr TypeMacros::u8 WRITE  = 1 << 1;
+constexpr TypeMacros::u8 APPEND = 1 << 2 | WRITE;
 
 constexpr const char* SYSOUT_NAME = "stdout";
 constexpr const char* SYSIN_NAME = "stdin";
@@ -24,7 +37,7 @@ struct FileDescriptor
 {
     const char* name;
     const char* path;
-    u8 mode;
+    TypeMacros::u8 mode;
 };
 
 // An interface class for interfacing with file systems
@@ -35,20 +48,20 @@ struct EmbediFileStream
     virtual ~EmbediFileStream() = default;
     virtual bool open() { return false; }
     virtual void close() {}
-    virtual bool write(const u8 _byte) { return false; }
-    virtual u32 write(const u8* _data, u32 size) { return 0; }
+    virtual bool write(const TypeMacros::u8 _byte) { return false; }
+    virtual TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) { return 0; }
     virtual void flush() {}
-    virtual u8 read() { return 0; }
-    virtual u32 read(u8* buffer, u32 size) { return 0; }
+    virtual TypeMacros::u8 read() { return 0; }
+    virtual TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) { return 0; }
     virtual void seek() {}
     virtual void tell() {}
-    virtual u32 available() { return 0; }
+    virtual TypeMacros::u32 available() { return 0; }
 };
 
 struct FileTable
 {
     EmbediFileStream* fileHandles[ MAX_FILE_HANDLES ];
-    u32 count = 0;
+    TypeMacros::u32 count = 0;
 
     EmbediFileStream* push(EmbediFileStream* fileStream);
     EmbediFileStream* remove(EmbediFileStream* fdesc);
@@ -67,8 +80,8 @@ struct StandardOutput : public EmbediFileStream
         this->descriptor = {"stdout", "", WRITE};
     }
 
-    bool write(const u8 _byte) override;
-    u32 write(const u8* _data, u32 size) override;
+    bool write(const TypeMacros::u8 _byte) override;
+    TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override;
     void flush() override;
 };
 
@@ -79,9 +92,9 @@ struct StandardInput : public EmbediFileStream
         this->descriptor = {"stdin", "", READ };
     }
     
-    u8 read() override;
-    u32 read(u8* buffer, u32 size) override;
-    u32 available() override;
+    TypeMacros::u8 read() override;
+    TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) override;
+    TypeMacros::u32 available() override;
 };
 
 struct StandardError : public EmbediFileStream
@@ -96,10 +109,10 @@ namespace SystemIO {
     char fgetc(const char* streamName);
     void fputc(const char* streamName, const char c);
     void fputs(const char* streamName, const char* str);
-    void fprintf(const char* streamName, const char* format, ...);
+    TypeMacros::u32 fprintf(const char* streamName, const char* format, ...);
 
     char getchar();
-    void printf(const char* format, ...);
+    TypeMacros::u32 printf(const char* format, ...);
     void printchar(const char c);
     void perror(const char* str);
 };

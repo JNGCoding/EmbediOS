@@ -1,13 +1,12 @@
-#include "Arduino.h"
 #include "Allocator.hpp"
 
 // ------------------------------ BASIC ALLOCATOR ------------------------------
-memptr BasicAllocator::alloc(u32 size)
+TypeMacros::memptr EmbediBasicAllocator::alloc(TypeMacros::u32 size)
 {
     return malloc(size);
 }
 
-bool BasicAllocator::destroy(memptr mem)
+bool EmbediBasicAllocator::destroy(TypeMacros::memptr mem)
 {
     if (mem != nullptr)
     {
@@ -17,9 +16,9 @@ bool BasicAllocator::destroy(memptr mem)
     else return false;
 }
 
-memptr BasicAllocator::reshape(memptr mem, u32 size)
+TypeMacros::memptr EmbediBasicAllocator::reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
 {
-    memptr space = realloc(mem, size);
+    TypeMacros::memptr space = realloc(mem, size);
     if (space != nullptr)
     {
         return space;
@@ -27,20 +26,20 @@ memptr BasicAllocator::reshape(memptr mem, u32 size)
     else return nullptr;
 }
 
-void BasicAllocator::dump(const char* streamName)
+void EmbediBasicAllocator::dump(const char* streamName)
 {
     SystemIO::fprintf(streamName, "Basic Allocator have no proper dump() method");
 }
 
-BasicAllocator basicAllocator;
+EmbediBasicAllocator basicAllocator;
 
 // ------------------------------ ARENA ALLOCATOR ------------------------------
-ArenaAllocator::ArenaAllocator(u32 _blockSize) : blockSize(_blockSize)
+EmbediArenaAllocator::EmbediArenaAllocator(TypeMacros::u32 _blockSize) : blockSize(_blockSize)
 {
-    assert(_blockSize > 0 && "[ArenaAllocator::ArenaAllocator(u32)] FATAL ERROR: BLOCK SIZE == 0, NOT SUPPORTED");
+    assert(_blockSize > 0 && "[EmbediArenaAllocator::EmbediArenaAllocator(TypeMacros::u32)] FATAL ERROR: BLOCK SIZE == 0, NOT SUPPORTED");
 }
 
-ArenaAllocator::~ArenaAllocator()
+EmbediArenaAllocator::~EmbediArenaAllocator()
 {
     if (this->blocks != nullptr)
     {
@@ -51,40 +50,40 @@ ArenaAllocator::~ArenaAllocator()
     basicAllocator.destroy(this->blocks);
 }
 
-bool ArenaAllocator::arena_alloc_block()
+bool EmbediArenaAllocator::arena_alloc_block()
 {
     if (this->blocks == nullptr)
     {
-        memptr blockSpace = basicAllocator.alloc(sizeof(memptr));
+        TypeMacros::memptr blockSpace = basicAllocator.alloc(sizeof(TypeMacros::memptr));
 
         if (blockSpace == nullptr)
             return false;
 
-        this->blocks = static_cast<memptr*>(blockSpace);
+        this->blocks = static_cast<TypeMacros::memptr*>(blockSpace);
     }
 
-    memptr space = basicAllocator.reshape(this->blocks, ++this->numBlocks * sizeof(memptr));
+    TypeMacros::memptr space = basicAllocator.reshape(this->blocks, ++this->numBlocks * sizeof(TypeMacros::memptr));
     if (space == nullptr)
         return false;
 
-    memptr blockSpace = basicAllocator.reshape(this->blocks, ++this->numBlocks * sizeof(memptr));
+    TypeMacros::memptr blockSpace = basicAllocator.reshape(this->blocks, ++this->numBlocks * sizeof(TypeMacros::memptr));
     if (blockSpace == nullptr)
         return false;
 
-    this->blocks = static_cast<memptr*>(blockSpace);
+    this->blocks = static_cast<TypeMacros::memptr*>(blockSpace);
     this->blocks[this->numBlocks - 1] = space;
     this->allocPointer = 0;
 
     return true;
 }
 
-memptr ArenaAllocator::alloc(u32 size)
+TypeMacros::memptr EmbediArenaAllocator::alloc(TypeMacros::u32 size)
 {
     if (this->numBlocks == 0)
     {
         if (!this->arena_alloc_block())
         {
-            SystemIO::perror("[ArenaAllocator::alloc(u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
+            SystemIO::perror("[EmbediArenaAllocator::alloc(TypeMacros::u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
             return nullptr;
         }
     }
@@ -98,30 +97,30 @@ memptr ArenaAllocator::alloc(u32 size)
     {
         if (!this->arena_alloc_block())
         {
-            SystemIO::perror("[ArenaAllocator::alloc(u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
+            SystemIO::perror("[EmbediArenaAllocator::alloc(TypeMacros::u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
             return nullptr;
         }
     }
 
-    memptr res = static_cast<u8*>(this->blocks[this->numBlocks - 1]) + this->allocPointer;
+    TypeMacros::memptr res = static_cast<u8*>(this->blocks[this->numBlocks - 1]) + this->allocPointer;
     this->allocPointer += size;
 
     return res;
 }
 
-bool ArenaAllocator::destroy(memptr mem)
+bool EmbediArenaAllocator::destroy(TypeMacros::memptr mem)
 {
-    SystemIO::perror("[ArenaAllocator::destroy(memptr)] ERROR: destroy() method not implemented");
+    SystemIO::perror("[EmbediArenaAllocator::destroy(TypeMacros::memptr)] ERROR: destroy() method not implemented");
     return false;
 }
 
-memptr ArenaAllocator::reshape(memptr mem, u32 size)
+TypeMacros::memptr EmbediArenaAllocator::reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
 {
-    SystemIO::perror("[ArenaAllocator::destroy(memptr)] ERROR: reshape() method not implemented");
+    SystemIO::perror("[EmbediArenaAllocator::destroy(TypeMacros::memptr)] ERROR: reshape() method not implemented");
     return nullptr;
 }
 
-bool ArenaAllocator::free_block(bool pseudo)
+bool EmbediArenaAllocator::free_block(bool pseudo)
 {
     if (this->blocks == nullptr || this->numBlocks == 0) return true;
 
@@ -137,7 +136,7 @@ bool ArenaAllocator::free_block(bool pseudo)
 
         if (this->numBlocks > 0)
         {
-            memptr* _ptemp = static_cast<memptr*>(basicAllocator.reshape(this->blocks, this->numBlocks * sizeof(memptr)));
+            TypeMacros::memptr* _ptemp = static_cast<TypeMacros::memptr*>(basicAllocator.reshape(this->blocks, this->numBlocks * sizeof(TypeMacros::memptr)));
             if (_ptemp == nullptr)
                 return false;
 
@@ -155,11 +154,11 @@ bool ArenaAllocator::free_block(bool pseudo)
     return true;
 }
 
-void ArenaAllocator::arena_free()
+void EmbediArenaAllocator::arena_free()
 {
     if (this->blocks != nullptr)
     {
-        for (u32 i = 0; i < this->numBlocks; i++)
+        for (TypeMacros::u32 i = 0; i < this->numBlocks; i++)
             basicAllocator.destroy(this->blocks[i]);
 
         basicAllocator.destroy(this->blocks);
@@ -168,46 +167,46 @@ void ArenaAllocator::arena_free()
     }
 }
 
-void ArenaAllocator::dump(const char* streamName)
+void EmbediArenaAllocator::dump(const char* streamName)
 {
-    SystemIO::fprintf(streamName, "ArenaAllocator{\n\tblock size = %u\ntotal blocks = %u\n\n", this->blockSize, this->numBlocks);
+    SystemIO::fprintf(streamName, "EmbediArenaAllocator{\n\tblock size = %u\ntotal blocks = %u\n\n", this->blockSize, this->numBlocks);
     if (this->blocks != nullptr)
     {
         SystemIO::fprintf(streamName, "blocks:\n");
-        for (u32 i = 0; i < this->numBlocks; i++)
+        for (TypeMacros::u32 i = 0; i < this->numBlocks; i++)
             SystemIO::fprintf(streamName, "\tblock{%u}: %p\n", i, this->blocks[i]);
     }
     SystemIO::fprintf(streamName, "}\n");
 }
 
 // ------------------------------ LINEAR ALLOCATOR ------------------------------
-LinearAllocator::LinearAllocator(u8* buf, u32 cap_size) : cap(cap_size)
+EmbediLinearAllocator::EmbediLinearAllocator(u8* buf, TypeMacros::u32 cap_size) : cap(cap_size)
 {
     if (this->buffer == nullptr)
     {
-        SystemIO::perror("[LinearAllocator::LinearAllocator(u8*, u32)] ERROR: NULLPTR PASSED, CREATING BUFFER ON BASIC ALLOCATOR");
+        SystemIO::perror("[EmbediLinearAllocator::EmbediLinearAllocator(u8*, TypeMacros::u32)] ERROR: NULLPTR PASSED, CREATING BUFFER ON BASIC ALLOCATOR");
 
         this->buffer = static_cast<u8*>(basicAllocator.alloc(this->cap));
-        assert(this->buffer != nullptr && "[LinearAllocator::LinearAllocator(u32)] FATAL ERROR: MEMORY ALLOCATION FAILED");
+        assert(this->buffer != nullptr && "[EmbediLinearAllocator::EmbediLinearAllocator(TypeMacros::u32)] FATAL ERROR: MEMORY ALLOCATION FAILED");
         this->heapBufferAllocated = true;
     }
     else this->buffer = buf;
 }
 
-LinearAllocator::~LinearAllocator()
+EmbediLinearAllocator::~EmbediLinearAllocator()
 {
     if (this->heapBufferAllocated)
         basicAllocator.destroy(this->buffer);
 }
 
-memptr LinearAllocator::alloc(u32 size)
+TypeMacros::memptr EmbediLinearAllocator::alloc(TypeMacros::u32 size)
 {
     if (this->buffer != nullptr)
     {
         if (this->sp + size >= this->cap)
             return nullptr;
 
-        memptr space = static_cast<u8*>(this->buffer) + this->sp;
+        TypeMacros::memptr space = static_cast<u8*>(this->buffer) + this->sp;
         this->sp += size;
 
         return space;
@@ -215,38 +214,38 @@ memptr LinearAllocator::alloc(u32 size)
     else return nullptr;
 }
 
-bool LinearAllocator::destroy(memptr mem)
+bool EmbediLinearAllocator::destroy(TypeMacros::memptr mem)
 {
-    SystemIO::perror("[LinearAllocator::destroy(memptr)] ERROR: destroy() method not implemented");
+    SystemIO::perror("[EmbediLinearAllocator::destroy(TypeMacros::memptr)] ERROR: destroy() method not implemented");
     return false;
 }
 
-memptr LinearAllocator::reshape(memptr mem, u32 size)
+TypeMacros::memptr EmbediLinearAllocator::reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
 {
-    SystemIO::perror("[LinearAllocator::destroy(memptr)] ERROR: reshape() method not implemented");
+    SystemIO::perror("[EmbediLinearAllocator::destroy(TypeMacros::memptr)] ERROR: reshape() method not implemented");
     return nullptr;
 }
 
-void LinearAllocator::buffer_free()
+void EmbediLinearAllocator::buffer_free()
 {
     this->sp = 0;
 }
 
-void LinearAllocator::dump(const char* streamName)
+void EmbediLinearAllocator::dump(const char* streamName)
 {
-    SystemIO::fprintf(streamName, "LinearAllocator{\n\t");
-    for (u32 i = 0; i < min(64UL, this->cap); i++)
+    SystemIO::fprintf(streamName, "EmbediLinearAllocator{\n\t");
+    for (TypeMacros::u32 i = 0; i < __min(64UL, this->cap); i++)
         SystemIO::fprintf(streamName, "%u\n", this->buffer[i]);
     SystemIO::fprintf(streamName, "}");
 }
 
 // ------------------------------ RANDOM ACCESS MEMORY ALLOCATOR ------------------------------
-inline u32 read_u32(u8* ptr)
+inline TypeMacros::u32 read_u32(u8* ptr)
 {
-    return (static_cast<u32>(ptr[0]) << 24) | (static_cast<u32>(ptr[1]) << 16) | (static_cast<u32>(ptr[2]) << 8) | (static_cast<u32>(ptr[3]) & 0xFF);
+    return (static_cast<TypeMacros::u32>(ptr[0]) << 24) | (static_cast<TypeMacros::u32>(ptr[1]) << 16) | (static_cast<TypeMacros::u32>(ptr[2]) << 8) | (static_cast<TypeMacros::u32>(ptr[3]) & 0xFF);
 }
 
-inline void write_u32(u8* ptr, u32 sz32)
+inline void write_u32(u8* ptr, TypeMacros::u32 sz32)
 {
     ptr[0] = static_cast<u8>(sz32 >> 24);        // then write allocation size
     ptr[1] = static_cast<u8>(sz32 >> 16);
@@ -254,33 +253,33 @@ inline void write_u32(u8* ptr, u32 sz32)
     ptr[3] = static_cast<u8>(sz32 & 0xFF);
 }
 
-RandomAccessMemoryAllocator::RandomAccessMemoryAllocator(u8* buf, const u32 cap_size) : capacity(cap_size)
+EmbediRandomAccessMemoryAllocator::EmbediRandomAccessMemoryAllocator(u8* buf, const TypeMacros::u32 cap_size) : capacity(cap_size)
 {
     if (buf == nullptr)
     {
         this->buffer = static_cast<u8*>( basicAllocator.alloc(cap_size) );
-        assert(this->buffer != nullptr && "[RandomAccessMemoryAllocator::RandomAccessMemoryAllocator(u8*, u32)] FATAL ERROR: FAILED TO ALLOCATE MEMORY CHUNK");
+        assert(this->buffer != nullptr && "[EmbediRandomAccessMemoryAllocator::EmbediRandomAccessMemoryAllocator(u8*, TypeMacros::u32)] FATAL ERROR: FAILED TO ALLOCATE MEMORY CHUNK");
         this->heapBufferAllocated = true;
     }
     this->buffer = buf;
     
 }
 
-RandomAccessMemoryAllocator::~RandomAccessMemoryAllocator()
+EmbediRandomAccessMemoryAllocator::~EmbediRandomAccessMemoryAllocator()
 {
     if (this->heapBufferAllocated)
         basicAllocator.destroy(this->buffer);
 }
 
-memptr RandomAccessMemoryAllocator::alloc(u32 size)
+TypeMacros::memptr EmbediRandomAccessMemoryAllocator::alloc(TypeMacros::u32 size)
 {
-    u32 neededSpace = 1 + 4 + size;
+    TypeMacros::u32 neededSpace = 1 + 4 + size;
 
-    for (u32 i = 0; i + neededSpace < this->capacity;)
+    for (TypeMacros::u32 i = 0; i + neededSpace < this->capacity;)
     {
         if (this->buffer[i] == 0xCF)
         {
-            u32 allocSize = read_u32(this->buffer + i + 1);
+            TypeMacros::u32 allocSize = read_u32(this->buffer + i + 1);
             i += allocSize + 5;
             continue;
         }
@@ -290,7 +289,7 @@ memptr RandomAccessMemoryAllocator::alloc(u32 size)
             if (i + neededSpace > this->capacity)
             {
                 bool spaceFound = true;
-                for (u32 j = i; j < i + neededSpace; j++)
+                for (TypeMacros::u32 j = i; j < i + neededSpace; j++)
                 {
                     if (this->buffer[j] == 0xCF)
                     {
@@ -315,7 +314,7 @@ memptr RandomAccessMemoryAllocator::alloc(u32 size)
     return nullptr;
 }
 
-bool RandomAccessMemoryAllocator::destroy(memptr mem)
+bool EmbediRandomAccessMemoryAllocator::destroy(TypeMacros::memptr mem)
 {
     u8* ptr = static_cast<u8*>(mem) - 5;
 
@@ -327,27 +326,51 @@ bool RandomAccessMemoryAllocator::destroy(memptr mem)
         return false;
     }
 
-    u32 alloc_size = read_u32(ptr + 1);
+    TypeMacros::u32 alloc_size = read_u32(ptr + 1);
     memset(ptr, 0, alloc_size + 4);
     this->objects--;
 
     return true;
 }
 
-memptr RandomAccessMemoryAllocator::reshape(memptr mem, u32 size)
+TypeMacros::memptr EmbediRandomAccessMemoryAllocator::reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
 {
     return nullptr;
 }
 
-void RandomAccessMemoryAllocator::dump(const char* streamName)
+void EmbediRandomAccessMemoryAllocator::dump(const char* streamName)
 {
     SystemIO::fprintf(streamName, "Heap dump (first %u bytes) - ", 64UL);
-    for (size_t i = 0; i < min(64UL, this->capacity); i++)
+    for (size_t i = 0; i < __min(64UL, this->capacity); i++)
     { SystemIO::fprintf(streamName, "%u ", buffer[i]); }
     SystemIO::fprintf(streamName, "\nObjects: %u\n", this->objects);
 }
 
-void RandomAccessMemoryAllocator::reset()
+void EmbediRandomAccessMemoryAllocator::reset()
 {
     memset(this->buffer, 0, this->capacity);
+}
+
+// ------------------------------ POOL ALLOCATOR ------------------------------
+EmbediPoolAllocator::EmbediPoolAllocator(TypeMacros::memptr buffer_start, TypeMacros::u32 block_size, TypeMacros::u32 cap_size)
+{
+}
+
+TypeMacros::memptr EmbediPoolAllocator::alloc(TypeMacros::u32 size)
+{
+    return nullptr;
+}
+
+bool  EmbediPoolAllocator::destroy(TypeMacros::memptr mem)
+{
+    return false;
+}
+
+TypeMacros::memptr EmbediPoolAllocator::reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
+{
+    return nullptr;
+}
+
+void EmbediPoolAllocator::dump(const char* streamName)
+{
 }

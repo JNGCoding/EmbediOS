@@ -3,26 +3,30 @@
 
 #include <stdint.h>
 
-using i8  = int8_t;
-using i16 = int16_t;
-using i32 = int32_t;
-using i64 = int64_t;
+namespace TypeMacros
+{
+    using i8  = int8_t;
+    using i16 = int16_t;
+    using i32 = int32_t;
+    using i64 = int64_t;
 
-using u8    = uint8_t;
-using u16   = uint16_t;
-using u32   = uint32_t;
-using u64   = uint64_t;
-using usize = unsigned long long;
+    using u8    = uint8_t;
+    using u16   = uint16_t;
+    using u32   = uint32_t;
+    using u64   = uint64_t;
+    using usize = unsigned long long;
 
-using f32 = float;
-using f64 = double;
+    using f32 = float;
+    using f64 = double;
 
-using memptr = void*;
+    using memptr = void*;
+};
 
 #define getter(ret_type, name, variable) ret_type name() { return this->variable; }
 #define setter(inp_type, name, variable) void name(inp_type __other) { this->variable = __other; }
 
-#define max(x, y) ((x > y) ? x : y)
-#define min(x, y) ((x < y) ? x : y)
+#define __max(x, y) (((x) > (y)) ? (x) : (y))
+#define __min(x, y) (((x) < (y)) ? (x) : (y))
+#define __abs(x) (((x) < 0) ? -(x) : (x))
 
 #endif
