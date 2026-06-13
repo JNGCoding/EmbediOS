@@ -22,9 +22,6 @@ namespace TypeMacros
     using memptr = void*;
 };
 
-#define getter(ret_type, name, variable) ret_type name() { return this->variable; }
-#define setter(inp_type, name, variable) void name(inp_type __other) { this->variable = __other; }
-
 #define __max(x, y) (((x) > (y)) ? (x) : (y))
 #define __min(x, y) (((x) < (y)) ? (x) : (y))
 #define __abs(x) (((x) < 0) ? -(x) : (x))

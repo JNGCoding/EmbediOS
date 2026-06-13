@@ -30,6 +30,7 @@ struct EmbediApplication
 
     // this function is a handler function for various signals provided by the user
     // for eg. 'ctrl+c' will by default close the program
+    // `sigint`: represents the signal
     virtual void signal(int sigint)
     {
         switch (sigint)

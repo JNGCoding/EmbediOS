@@ -3,4 +3,11 @@
 
 #include "Application.hpp"
 
+struct Demo : public EmbediApplication
+{
+    int main(int argc, const char* argv[]) override;
+};
+
+extern Demo demoApp;
+
 #endif

@@ -38,7 +38,3 @@ void loadEverything()
     allFiles.push(&inputStream);
     allFiles.push(&errorStream);
 }
-
-void prepareSpecialMemorySpace()
-{
-}

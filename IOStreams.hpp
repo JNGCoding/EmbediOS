@@ -11,7 +11,7 @@
 #else
 #define assert(expr) ((expr) ? (void)0 : abort())
 
-// I fuckin hate libc, and AVR libraries define them as fuckin macros
+// I fuckin hate AVR libc, and AVR libraries define getchar as a fuckin macro
 // What the fuck, fucker gave me incomprehensible errors about redeclaration
 // That's why an #undef is put here
 #undef getchar
