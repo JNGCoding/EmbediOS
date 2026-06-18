@@ -10,6 +10,7 @@
 // be provided with special allocators to allocate memory
 // To prevent Heap Fragmentation
 
+#include <string.h>
 #include "TypeMacros.hpp"
 #include "Allocator.hpp"
 #include "DataStructures.hpp"
@@ -25,6 +26,9 @@ constexpr TypeMacros::u32 MAX_ARGS = 5;
 // then the argument will be truncated
 constexpr TypeMacros::u32 ARG_LENGTH = 64;
 
+// MAX FUNCTIONS
+constexpr TypeMacros::u32 MAX_FUNCTIONS = 128;
+
 EmbediApplication* latestRanApplication = nullptr;
 
 // I don't know how to give the Operating system the access to kill a process
@@ -35,9 +39,105 @@ EmbediApplication* latestRanApplication = nullptr;
 // the program may be too slow
 // I was thinking of implementing like ring 0 access like Terry Davis, I think his name is
 
+inline bool is_space(const char ch) {
+    return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0';
+}
+
+Demo demoProgram;
+int demo(int argc, const char* argv[])
+{
+    demoProgram.main(argc, argv);
+    return 0;
+}
+
 struct CommandLine
 {
     using CLFunction = int(*)(int argc, const char* argv[]);
+
+    EmbediPair<const char*, CLFunction> functions[MAX_FUNCTIONS];
+    TypeMacros::u32 appIndex = 0;
+
+    CommandLine()
+    {
+        this->register_function("demo", demo);
+    }
+
+    bool register_function(const char* name, CLFunction func)
+    {
+        if (this->appIndex >= MAX_FUNCTIONS)
+            return false;
+
+        this->functions[this->appIndex++].set(name, func);
+        return true;
+    }
+
+    struct FunctionPackage
+    {
+        CLFunction function;
+        int argc;
+        char argv_storage[MAX_ARGS][ARG_LENGTH];
+        const char* argv[MAX_ARGS];
+    } loadedFunction = {};
+
+    FunctionPackage* process_statement(const char* statement)
+    {
+        TypeMacros::u32 strsize = strlen(statement);
+
+        char name[64];
+
+        TypeMacros::u32 i = 0;
+
+        // Skip Leading spaces
+        for (; is_space(statement[i]); i++);
+        if (i >= strsize)
+            return nullptr;
+
+        // Process name (Compact code but all it does, is append characters to name)
+        unsigned int nameAppIndex = 0;
+        for (; i < strsize && !is_space(statement[i]); i++)
+            name[nameAppIndex < 63 ? nameAppIndex++ : 62] = statement[i];
+        name[nameAppIndex] = '\0';
+
+        // Take the function
+        bool flag = false;
+        for (TypeMacros::u32 j = 0; j < this->appIndex; j++)
+        {
+            if (strcmp(this->functions[j].a, name) == 0)
+            {
+                this->loadedFunction.function = this->functions[j].b;
+                flag = true;
+                break;
+            }
+        }
+        if (!flag)
+            return nullptr;
+
+        // Process Arguments
+        unsigned int argIndex = 0;
+        unsigned int argAppIndex = 0;
+
+        while (i < strsize && argIndex < MAX_ARGS)
+        {
+            // Skip Leading spaces
+            for (; is_space(statement[i]); i++);
+            if (i >= strsize)
+                break;
+
+            // Read the characters
+            for (; i < strsize && !is_space(statement[i]); i++)
+                this->loadedFunction.argv_storage[argIndex][argAppIndex < ARG_LENGTH - 1 ? argAppIndex++ : ARG_LENGTH - 2] = statement[i];
+
+            this->loadedFunction.argv_storage[argIndex][argAppIndex] = '\0';
+            this->loadedFunction.argv[argIndex] = this->loadedFunction.argv_storage[argIndex];
+
+            argIndex++;
+            argAppIndex = 0;
+        }
+
+        this->loadedFunction.argc = argIndex;
+
+        return &this->loadedFunction;
+    }
 };
 
 #endif

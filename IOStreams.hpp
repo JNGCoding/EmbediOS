@@ -75,10 +75,7 @@ extern FileTable allFiles;
 
 struct StandardOutput : public EmbediFileStream
 {
-    StandardOutput()
-    {
-        this->descriptor = {"stdout", "", WRITE};
-    }
+    StandardOutput() { this->descriptor = {"stdout", "", WRITE}; }
 
     bool write(const TypeMacros::u8 _byte) override;
     TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override;
@@ -87,10 +84,7 @@ struct StandardOutput : public EmbediFileStream
 
 struct StandardInput : public EmbediFileStream
 {
-    StandardInput()
-    {
-        this->descriptor = {"stdin", "", READ };
-    }
+    StandardInput() { this->descriptor = {"stdin", "", READ }; }
     
     TypeMacros::u8 read() override;
     TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) override;
@@ -99,10 +93,7 @@ struct StandardInput : public EmbediFileStream
 
 struct StandardError : public EmbediFileStream
 {
-    StandardError()
-    {
-        this->descriptor = {"stderr", "", READ | WRITE};
-    }
+    StandardError() { this->descriptor = {"stderr", "", READ | WRITE}; }
 };
 
 namespace SystemIO {
@@ -112,6 +103,7 @@ namespace SystemIO {
     TypeMacros::u32 fprintf(const char* streamName, const char* format, ...);
 
     char getchar();
+    TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize);
     TypeMacros::u32 printf(const char* format, ...);
     void printchar(const char c);
     void perror(const char* str);

@@ -22,6 +22,9 @@ namespace TypeMacros
     using memptr = void*;
 };
 
+constexpr TypeMacros::u32 Kb(TypeMacros::u32 x) { return x * 1024; }
+constexpr TypeMacros::u32 Mb(TypeMacros::u32 x) { return 1024 * Kb(x); }
+
 #define __max(x, y) (((x) > (y)) ? (x) : (y))
 #define __min(x, y) (((x) < (y)) ? (x) : (y))
 #define __abs(x) (((x) < 0) ? -(x) : (x))

@@ -165,6 +165,12 @@ namespace SystemIO {
                     stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
+                else if (*format == 'c')
+                {
+                    char carg = va_arg(args, char);
+                    stream->write(carg);
+                    count++;
+                }
                 else
                 {
                     stream->write(*format);
@@ -194,6 +200,31 @@ namespace SystemIO {
         assert(SystemIO::standardInp != nullptr && "[SystemIO::getchar()] FATAL ERROR: Standard Input is not defined");
 
         return static_cast<char>(SystemIO::standardInp->read());
+    }
+
+    TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize)
+    {
+        if (SystemIO::standardInp == nullptr)
+            SystemIO::standardInp = allFiles.get_handle(SYSIN_NAME);
+
+        assert(SystemIO::standardInp != nullptr && "[SystemIO::getchar()] FATAL ERROR: Standard Input is not defined");
+
+        TypeMacros::u32 bytesRead = 0;
+
+        while (bytesRead < capSize - 1)
+        {
+            if (SystemIO::standardInp->available() > 0)
+            {
+                TypeMacros::u8 character = SystemIO::standardInp->read();
+                if (character == '\n')
+                    break;
+
+                buffer[bytesRead++] = character;
+            }
+        }
+
+        buffer[bytesRead] = '\0';
+        return bytesRead;
     }
 
     TypeMacros::u32 printf(const char* format, ...)
@@ -251,6 +282,12 @@ namespace SystemIO {
                     const TypeMacros::u32 length = strlen(smallBuffer);
                     SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
+                }
+                else if (*format == 'c')
+                {
+                    char carg = va_arg(args, char);
+                    SystemIO::standardOut->write(carg);
+                    count++;
                 }
                 else
                 {

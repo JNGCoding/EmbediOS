@@ -51,8 +51,8 @@ template<typename T>
 struct DoublyNode
 {
     DoublyNode<T>* root = nullptr;
-    T value;
     DoublyNode<T>* head = nullptr;
+    T value;
 };
 
 // Generic Dynamically allocated String type
@@ -60,9 +60,9 @@ class EmbediString
 {
 private:
     EmbediAllocator* allocator = nullptr;
+    char* data = nullptr;
     TypeMacros::u32 capacity = 0;
     TypeMacros::u32 len = 0;
-    char* data = nullptr;
 
 public:
     constexpr static TypeMacros::f32 MULTIPLY_FACTOR = 2.0f;
@@ -534,9 +534,9 @@ class EmbediDynamicStack
 {
 private:
     T* buffer = nullptr;
+    EmbediAllocator* allocator = nullptr;
     TypeMacros::u32 count = 0;
     TypeMacros::u32 capacity = 0;
-    EmbediAllocator* allocator = nullptr;
 
 public:
     constexpr static TypeMacros::f32 MULTIPLY_FACTOR = 2.0f;
