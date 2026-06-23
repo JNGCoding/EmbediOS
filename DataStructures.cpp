@@ -206,7 +206,7 @@ bool EmbediString::is_digit()
 bool EmbediString::is_ascii()
 {
     for (size_t i = 0; i < this->len; i++) {
-        if (static_cast<u8>(this->data[i]) > 127) {
+        if (static_cast<TypeMacros::u8>(this->data[i]) > 127) {
             return false;
         }
     }

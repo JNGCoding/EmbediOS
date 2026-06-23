@@ -8,9 +8,16 @@
 
 #ifndef __AVR__
 #include <assert.h>
+#include <stddef.h>
+constexpr TypeMacros::u32 MAX_ALIGNMENT = alignof(max_align_t);
 #else
 #define assert(expr) ((expr) ? (void)0 : abort())
+constexpr TypeMacros::u32 MAX_ALIGNMENT = __max(alignof(long long), alignof(double));
 #endif
+
+inline TypeMacros::u32 align_up(TypeMacros::u32 value, TypeMacros::u32 alignment = MAX_ALIGNMENT) {
+    return (alignment + value - 1) + ~(alignment + 1);
+}
 
 struct EmbediAllocator
 {
@@ -32,16 +39,13 @@ struct EmbediAllocator
 struct EmbediBasicAllocator : public EmbediAllocator
 {
     TypeMacros::memptr alloc(TypeMacros::u32 size) override;
-    bool  destroy(TypeMacros::memptr mem) override;
+    bool destroy(TypeMacros::memptr mem) override;
     TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
     void dump(const char* streamName) override;
 };
 
 extern EmbediBasicAllocator basicAllocator;
 
-// TODO: Input an allocator parameter to this allocator
-// So that it can allocate from a pre-allocated buffer instead from the system
-// directly
 class EmbediArenaAllocator : public EmbediAllocator
 {
 private:
@@ -55,7 +59,7 @@ public:
     EmbediArenaAllocator(TypeMacros::u32 _blockSize);
     ~EmbediArenaAllocator();
     TypeMacros::memptr alloc(TypeMacros::u32 size) override;
-    bool  destroy(TypeMacros::memptr mem) override;
+    bool destroy(TypeMacros::memptr mem) override;
     TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
     bool free_block(bool pseudo = false);
     void arena_free();
@@ -67,13 +71,13 @@ public:
 class EmbediLinearAllocator : public EmbediAllocator
 {
 private:
-    u8* buffer    = nullptr;
+    TypeMacros::u8* buffer    = nullptr;
     TypeMacros::u32 sp        = 0;
     const TypeMacros::u32 cap = 0;
     bool heapBufferAllocated = false;
 
 public:
-    EmbediLinearAllocator(u8* buf, TypeMacros::u32 cap_size);
+    EmbediLinearAllocator(TypeMacros::u8* buf, TypeMacros::u32 cap_size);
     ~EmbediLinearAllocator();
     TypeMacros::memptr alloc(TypeMacros::u32 size) override;
     bool  destroy(TypeMacros::memptr mem) override;
@@ -87,11 +91,11 @@ class EmbediRandomAccessMemoryAllocator : public EmbediAllocator
 private:
     const TypeMacros::u32 capacity = 0;
     TypeMacros::u32 objects = 0;
-    u8* buffer = nullptr;
+    TypeMacros::u8* buffer = nullptr;
     bool heapBufferAllocated = false;
 
 public:
-    EmbediRandomAccessMemoryAllocator(u8* buf, const TypeMacros::u32 cap_size);
+    EmbediRandomAccessMemoryAllocator(TypeMacros::u8* buf, const TypeMacros::u32 cap_size);
     ~EmbediRandomAccessMemoryAllocator();
     TypeMacros::memptr alloc(TypeMacros::u32 size) override;
     bool destroy(TypeMacros::memptr mem) override;
@@ -100,44 +104,89 @@ public:
     void reset();
 };
 
-class EmbediPoolAllocator : public EmbediAllocator
+template<typename T>
+class EmbediPoolAllocator
 {
 private:
-    struct {
-        bool free;
-        TypeMacros::memptr memory;
-    } *buffer;
-
-public:
-    EmbediPoolAllocator(TypeMacros::memptr buffer_start, TypeMacros::u32 block_size, TypeMacros::u32 cap_size);
-    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
-    bool  destroy(TypeMacros::memptr mem) override;
-    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
-    void dump(const char* streamName) override;
-};
-
-template<TypeMacros::u32 bufferSize, TypeMacros::u32 heapAllocedSize, TypeMacros::u32 heapFreedSize>
-class EmbediHeapAllocator : public EmbediAllocator
-{
-private:
-    struct HeapChunk
-    {
-        TypeMacros::memptr ptr;
-        TypeMacros::u32 memsize;
+    struct FreeObject {
+        T object;
+        bool free = false;
     };
 
-    u8 buffer[bufferSize] = {0};
-    HeapChunk chunks[heapAllocedSize];
-    HeapChunk freedChunks[heapFreedSize];
-
-    TypeMacros::u32 heapSize = 0;
-    TypeMacros::u32 heapAllocSize = 0;
-
+    using FreeList = FreeObject*;
+    FreeList buffer;
+    EmbediAllocator* allocator = nullptr;
+    const TypeMacros::u32 capacity;
+    TypeMacros::u32 freeIndex = 0;
 public:
-    TypeMacros::memptr alloc(TypeMacros::u32 size) override;
-    bool  destroy(TypeMacros::memptr mem) override;
-    TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
-    void dump(const char* streamName) override;
+    EmbediPoolAllocator(TypeMacros::u32 numObjects, EmbediAllocator* _allocator, T copyObject) : capacity(numObjects)
+    {
+        this->buffer = static_cast<FreeList>(_allocator->alloc(numObjects * sizeof(FreeObject)));
+        this->allocator = _allocator;
+        assert(this->buffer != nullptr && "[EmbediPoolAllocator::EmbediPoolAllocator(u32, EmbediAllocator*)] FATAL ERROR: BUFFER ALLOCATED WAS NULL");
+
+        for (TypeMacros::i32 i = 0; i < numObjects; i++)
+            memcpy(&this->buffer[i].object, &copyObject, sizeof(T));
+    }
+
+    ~EmbediPoolAllocator()
+    {
+        this->allocator->destroy(this->buffer);
+    }
+
+    T* alloc()
+    {
+        if (this->freeIndex < this->capacity && this->buffer[this->freeIndex].free)
+        {
+            this->buffer[this->freeIndex].free = false;
+            return &this->buffer[this->freeIndex++].object;
+        }
+        else
+        {
+            for (TypeMacros::u32 i = 0; i < this->capacity; i++)
+            {
+                if (this->buffer[i].free)
+                {
+                    this->buffer[i].free = false;
+                    this->freeIndex = i + 1;
+                    return &this->buffer[i].object;
+                }
+            }
+
+            return nullptr;
+        }
+    }
+
+    void destroy(T* mem)
+    {
+        if (mem == nullptr)
+            return;
+
+        TypeMacros::uintptr base = reinterpret_cast<TypeMacros::uintptr>(this->buffer);
+        TypeMacros::uintptr end  = base + this->capacity * sizeof(FreeObject);
+        TypeMacros::uintptr ptr  = reinterpret_cast<TypeMacros::uintptr>(mem);
+
+        if (ptr < base || ptr >= end)
+            return;
+
+        TypeMacros::u32 index = (ptr - base) / sizeof(FreeObject);
+        
+        if (reinterpret_cast<T*>(&this->buffer[index].object) != mem)
+            return;
+
+        this->buffer[index].free = true;
+        this->freeIndex = index;
+    }
+
+    void dump(const char* streamName)
+    {
+        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        if (stream == nullptr)
+            return;
+
+        for (TypeMacros::u32 i = 0; i < this->capacity; i++)
+            SystemIO::fprintf(stream, "FreeObject[%u]: free = %d", i, static_cast<int>(this->buffer[i].free));
+    }
 };
 
 #endif

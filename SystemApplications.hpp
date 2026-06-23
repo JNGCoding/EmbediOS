@@ -2,12 +2,9 @@
 #define __EMBEDI_SYSTEM_APPLICATIONS_HPP__
 
 #include "Application.hpp"
-
-struct Demo : public EmbediApplication
-{
-    int main(int argc, const char* argv[]) override;
-};
-
-extern Demo demoApp;
+#include "TypeMacros.hpp"
+#include "IOStreams.hpp"
+#include "Allocator.hpp"
+#include "DataStructures.hpp"
 
 #endif

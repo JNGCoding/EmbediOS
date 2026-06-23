@@ -1028,21 +1028,72 @@ public:
 
     bool add(const K& key, const V& value)
     {
-        return false;
+        if (this->get(key) != nullptr)
+            return false;
+
+        TypeMacros::u32 hash = EMBEDI_GENERIC_HASH_FUNCTION<K>(key);
+        TypeMacros::u32 index = hash % this->numBuckets;
+
+        EmbediPair<K, V> pair;
+        pair.set(key, value);
+
+        if (this->buckets[index]->append(pair))
+        {
+            this->count++;
+            return true;
+        }
+        else
+            return false;
     }
 
     bool remove(const K& key)
     {
+        TypeMacros::u32 hash = EMBEDI_GENERIC_HASH_FUNCTION<K>(key);
+        TypeMacros::u32 index = hash % this->numBuckets;
+
+        // start is a DoublyNode<T>* where T = EmbediPair<K, V> ==> DoublyNode<EmbediPair<K, V>>*
+        DoublyNode<EmbediPair<K, V>>* start = this->buckets[index].get_head();
+        TypeMacros::u32 i = 0;
+        while (start->head != nullptr)
+        {
+            if (start->value.a == key)
+                return this->buckets[index].remove(i);
+        }
+
         return false;
     }
 
     V* get(const K& key)
     {
+        TypeMacros::u32 hash = EMBEDI_GENERIC_HASH_FUNCTION<K>(key);
+        TypeMacros::u32 index = hash % this->numBuckets;
+
+        // start is a DoublyNode<T>* where T = EmbediPair<K, V> ==> DoublyNode<EmbediPair<K, V>>*
+        DoublyNode<EmbediPair<K, V>>* start = this->buckets[index].get_head();
+        TypeMacros::u32 i = 0;
+        while (start->head != nullptr)
+        {
+            if (start->value.a == key)
+                return &start->value.b;
+        }
+
         return nullptr;
     }
 
     const Entry* get_entry(const K& key)
     {
+        TypeMacros::u32 hash = EMBEDI_GENERIC_HASH_FUNCTION<K>(key);
+        TypeMacros::u32 index = hash % this->numBuckets;
+
+        // start is a DoublyNode<T>* where T = EmbediPair<K, V> ==> DoublyNode<EmbediPair<K, V>>*
+        DoublyNode<EmbediPair<K, V>>* start = this->buckets[index].get_head();
+        TypeMacros::u32 i = 0;
+        while (start->head != nullptr)
+        {
+            if (start->value.a == key)
+                return &start->value;
+        }
+
         return nullptr;
     }
 

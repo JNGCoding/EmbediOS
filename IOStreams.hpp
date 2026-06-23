@@ -2,6 +2,7 @@
 #define __EMBEDI_IO_STREAMS_HPP__
 
 #include <Arduino.h>
+#include <SdFat.h>
 #include <string.h>
 #include <stdarg.h>
 #include "TypeMacros.hpp"
@@ -53,8 +54,8 @@ struct EmbediFileStream
     virtual void flush() {}
     virtual TypeMacros::u8 read() { return 0; }
     virtual TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) { return 0; }
-    virtual void seek() {}
-    virtual void tell() {}
+    virtual void seek(const TypeMacros::u32 pos) {}  // Relative to the start of the file
+    virtual TypeMacros::u32 tell() { return 0; } // Relative to the start of the file
     virtual TypeMacros::u32 available() { return 0; }
 };
 
@@ -96,17 +97,55 @@ struct StandardError : public EmbediFileStream
     StandardError() { this->descriptor = {"stderr", "", READ | WRITE}; }
 };
 
-namespace SystemIO {
-    char fgetc(const char* streamName);
-    void fputc(const char* streamName, const char c);
-    void fputs(const char* streamName, const char* str);
-    TypeMacros::u32 fprintf(const char* streamName, const char* format, ...);
+// Implementation of SD Card reading
+struct SDCardFileStream : public EmbediFileStream
+{
+    static SdFat card;
+    SdFile file;
 
-    char getchar();
+    SDCardFileStream(const char* path, const TypeMacros::u8 mode);
+    ~SDCardFileStream();
+    bool open() override;
+    void close() override;
+    bool write(const TypeMacros::u8 _byte) override;
+    TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override;
+    void flush() override;
+    TypeMacros::u8 read() override;
+    TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) override;
+    void seek(const TypeMacros::u32 pos) override;
+    TypeMacros::u32 tell() override;
+    TypeMacros::u32 available() override;
+};
+
+namespace SystemIO {
+    bool open_file(EmbediFileStream* fileStream);
+    void close_file(EmbediFileStream* fileStream);
+    void close_file(const char* streamName);
+
+    TypeMacros::u8 fgetc(const char* streamName);
+    TypeMacros::u8 fgetc(EmbediFileStream* stream);
+
+    void fputc(const char* streamName, const TypeMacros::u8 c);
+    void fputc(EmbediFileStream* stream, const TypeMacros::u8 c);
+
+    TypeMacros::u32 fputs(const char* streamName, const char* str);
+    TypeMacros::u32 fputs(EmbediFileStream* stream, const char* str);
+
+    TypeMacros::u32 fprintf(const char* streamName, const char* format, ...);
+    TypeMacros::u32 fprintf(EmbediFileStream* stream, const char* format, ...);
+
+    TypeMacros::u32 fgets(const char* streamName, char* buffer, TypeMacros::u32 capSize);
+    TypeMacros::u32 fgets(EmbediFileStream* stream, char* buffer, TypeMacros::u32 capSize);
+
+    TypeMacros::u8 getchar();
+
     TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize);
     TypeMacros::u32 printf(const char* format, ...);
-    void printchar(const char c);
+
+    void printchar(const TypeMacros::u8 c);
     void perror(const char* str);
+
+    void flush();
 };
 
 #endif

@@ -20,6 +20,7 @@ namespace TypeMacros
     using f64 = double;
 
     using memptr = void*;
+    using uintptr = uintptr_t;
 };
 
 constexpr TypeMacros::u32 Kb(TypeMacros::u32 x) { return x * 1024; }

@@ -43,10 +43,18 @@ inline bool is_space(const char ch) {
     return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0';
 }
 
-Demo demoProgram;
-int demo(int argc, const char* argv[])
+// This function will read a file from a stream, such as SDCardFileStream
+// and execute functions from that file by reading lines
+static int command_set(int argc, const char* argv[])
 {
-    demoProgram.main(argc, argv);
+    return 0;
+}
+
+static int echo(int argc, const char* argv[])
+{
+    if (argc >= 1)
+        SystemIO::printf("%s\n", argv[0]);
+    
     return 0;
 }
 
@@ -59,7 +67,7 @@ struct CommandLine
 
     CommandLine()
     {
-        this->register_function("demo", demo);
+        this->register_function("echo", echo);
     }
 
     bool register_function(const char* name, CLFunction func)
@@ -124,8 +132,22 @@ struct CommandLine
                 break;
 
             // Read the characters
-            for (; i < strsize && !is_space(statement[i]); i++)
-                this->loadedFunction.argv_storage[argIndex][argAppIndex < ARG_LENGTH - 1 ? argAppIndex++ : ARG_LENGTH - 2] = statement[i];
+            if (statement[i] != '"')
+            {
+                for (; i < strsize && !is_space(statement[i]); i++)
+                    this->loadedFunction.argv_storage[argIndex][argAppIndex < ARG_LENGTH - 1 ? argAppIndex++ : ARG_LENGTH - 2] = statement[i];
+            }
+            else
+            {
+                // Skip leading '"'
+                i++;
+
+                for (; i < strsize && statement[i] != '"'; i++)
+                    this->loadedFunction.argv_storage[argIndex][argAppIndex < ARG_LENGTH - 1 ? argAppIndex++ : ARG_LENGTH - 2] = statement[i];
+
+                // Skip trailing '"'
+                i++;
+            }
 
             this->loadedFunction.argv_storage[argIndex][argAppIndex] = '\0';
             this->loadedFunction.argv[argIndex] = this->loadedFunction.argv_storage[argIndex];
@@ -139,5 +161,7 @@ struct CommandLine
         return &this->loadedFunction;
     }
 };
+
+extern CommandLine CMD;
 
 #endif

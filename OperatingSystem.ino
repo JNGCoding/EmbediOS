@@ -36,6 +36,7 @@ the community can come up with this shitty software.
 */
 
 #include <Arduino.h>
+#include <SdFat.h>
 
 #include "TypeMacros.hpp"
 #include "Allocator.hpp"
@@ -44,32 +45,49 @@ the community can come up with this shitty software.
 #include "Application.hpp"
 #include "SystemApplications.hpp"
 #include "CommandLine.hpp"
+#include "Defines.hpp"
+#include "VirtualMachine.hpp"
 
 using namespace TypeMacros;
 
 StandardOutput outputStream;
 StandardInput inputStream;
 StandardError errorStream;
+SdFat SDCardFileStream::card;
 
 constexpr usize MAX_STATEMENT_LENGTH = 1024;
 char commandLineStatement[MAX_STATEMENT_LENGTH] = {0};
+
+constexpr TypeMacros::u8 SD_CARD_CHIP_SELECT = 5;
 
 CommandLine CMD;
 
 void loadEverything();
 void runCMDFunction(CommandLine::FunctionPackage* f);
 
+u8 program[] = {0x01, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xfd, 0x01, 0x02, 0x00, 0x00, 0x00, 0x48, 0x00, 0x01, 0x01, 0x02, 0x00, 0x00, 0x00, 0x48, 0x00, 0x01, 0x13, 0x01, 0x02, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x01, 0x13, 0x03, 0x02, 0x00, 0x00, 0x00, 0x10, 0x14};
+u8 program_heap[Kb(10)] = {0};
+
+VirtualMachine machine;
+
 void setup()
 {
     Serial.begin(115200);
     loadEverything();
 
-    SystemIO::printf("\n");
+    u32 progSize = sizeof(program) / sizeof(u8);
+    SystemIO::printf("Program size: %u\n", progSize);
+
+    machine.load_program(program, progSize, program_heap);
+    int rc = machine.start_program();
+    machine.register_dump();
+
+    SystemIO::printf("VirtualMachine returned with %d\n", rc);
 }
 
 void loop()
 {
-    usize bytesRead = SystemIO::gets(commandLineStatement, MAX_STATEMENT_LENGTH);
+    u32 bytesRead = SystemIO::gets(commandLineStatement, MAX_STATEMENT_LENGTH);
     if (bytesRead <= 0)
         return;
 
@@ -80,23 +98,30 @@ void loop()
 
     CommandLine::FunctionPackage* function = CMD.process_statement(commandLineStatement);
 
-    if (function != nullptr)
-    {
-        // SystemIO::printf("Total Arguments: %d\n", function->argc);
-        // for (int i = 0; i < function->argc; i++)
-        //     SystemIO::printf("Arguments[%d]: %s\n", i, function->argv[i]);
+    if (function != nullptr) {
         runCMDFunction(function);
-    }
-    else {
+    } else {
         SystemIO::printf("Function recieved is nullptr\n");
     }
 }
 
 void loadEverything()
 {
+    // Load the default streams
     allFiles.push(&outputStream);
     allFiles.push(&inputStream);
     allFiles.push(&errorStream);
+
+#ifdef COMPILE_WITH_SD_INITIALIZATION
+
+    // Load the SdFat variables to intialize SdCard Streams
+    if (!SDCardFileStream::card.begin(SD_CARD_CHIP_SELECT, SD_SCK_MHZ(8)))
+    {
+        SystemIO::printf("[SDCardFileStream::card.begin()] FATAL ERROR: FAILED TO INITIALIZE SD CARD");
+        while (1) yield();
+    }
+
+#endif
 }
 
 void runCMDFunction(CommandLine::FunctionPackage* f)
