@@ -43,17 +43,13 @@ inline bool is_space(const char ch) {
     return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0';
 }
 
-// This function will read a file from a stream, such as SDCardFileStream
-// and execute functions from that file by reading lines
-static int command_set(int argc, const char* argv[])
-{
-    return 0;
-}
-
 static int echo(int argc, const char* argv[])
 {
-    if (argc >= 1)
-        SystemIO::printf("%s\n", argv[0]);
+    for (int i = 0; i < argc; i++)
+        SystemIO::printf("%s ", argv[0]);
+
+    SystemIO::printf("\n");
+    SystemIO::flush();
     
     return 0;
 }

@@ -23,7 +23,7 @@ for the Virtual Machine that will be running them.
 But programs can be embedded into the system as well. Again Abstractions provides
 flexibility.
 
-So few programs can be compiled and loaded into the system.
+So few programs can be compiled and embedded into the system itself.
 The number of program that can be compiled and loaded depends on the memory and
 flash storage of the Micro-Controller that you are currently holding.
 
@@ -55,53 +55,124 @@ StandardInput inputStream;
 StandardError errorStream;
 SdFat SDCardFileStream::card;
 
-constexpr usize MAX_STATEMENT_LENGTH = 1024;
-char commandLineStatement[MAX_STATEMENT_LENGTH] = {0};
+// Command Line Statement
+char CLS[MAX_STATEMENT_LENGTH] = {0};
 
-constexpr TypeMacros::u8 SD_CARD_CHIP_SELECT = 5;
+// Virtual Machine for executing program
+VirtualMachine VM;
+u8 Program[ MAX_PROGRAM_SIZE ] = {0};
+u8 ProgramHEAP[ MAX_HEAP_SIZE ] = {0};
+
+#ifdef COMPILE_WITH_SD_INITIALIZATION
+
+// Current Working Directory
+EmbediString CWD("\\");
+
+int listdir(int argc, const char* argv[])
+{
+    SdFile dir;
+    dir.open(CWD.c_str());
+
+    char nameBuffer[64];
+
+    if (!dir.isDir())
+        return -1;
+
+    dir.rewind();
+
+    SdFile file;
+    while (file.openNext(&dir, O_READ))
+    {
+        file.getName(nameBuffer, 64);
+
+        SystemIO::printf("%s");
+
+        if (file.isDir()) {
+            SystemIO::printf("\t<DIR>\n");
+        } else {
+            SystemIO::printf("\t<FIL>");
+            SystemIO::printf("\t%u bytes\n", file.fileSize());
+        }
+
+        file.close();
+    }
+
+    dir.close();
+
+    return 0;
+}
+
+int run_program(int argc, const char* argv[])
+{
+    if (argc == 0)
+    {
+        SystemIO::printf("no file was specified, exiting...");
+        return -1;
+    }
+
+    SystemIO::printf("Loading program...\n");
+
+    SDCardFileStream file(argv[0], READ);
+    bool opened = SystemIO::open_file(&file);
+    if (!opened)
+    {
+        SystemIO::printf("Failed to open file, exiting...\n");
+        return -1;
+    }
+
+    u32 appendIndex = 0;
+    while (file.available() > 0)
+    {
+        Program[ appendIndex++ ] = file.read();
+        if (appendIndex >= MAX_PROGRAM_SIZE)
+        {
+            SystemIO::printf("Error: program size is greater than %u, exiting...\n", MAX_PROGRAM_SIZE);
+            return -1;
+        }
+    }
+
+    SystemIO::close_file(&file);
+
+    SystemIO::printf("Program successfully read, program size: %u\n", appendIndex);
+
+    VM.load_program(Program, appendIndex, ProgramHEAP);
+    VM.load_streams(&outputStream, &inputStream);
+    int rs = VM.start_program();
+    VM.register_dump();
+
+    SystemIO::printf("Program exited with return code = %d\n", rs);
+
+    return 0;
+}
+
+#endif
 
 CommandLine CMD;
 
 void loadEverything();
 void runCMDFunction(CommandLine::FunctionPackage* f);
 
-u8 program[] = {0x01, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0xfd, 0x01, 0x02, 0x00, 0x00, 0x00, 0x48, 0x00, 0x01, 0x01, 0x02, 0x00, 0x00, 0x00, 0x48, 0x00, 0x01, 0x13, 0x01, 0x02, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x01, 0x13, 0x03, 0x02, 0x00, 0x00, 0x00, 0x10, 0x14};
-u8 program_heap[Kb(10)] = {0};
-
-VirtualMachine machine;
-
 void setup()
 {
     Serial.begin(115200);
     loadEverything();
-
-    u32 progSize = sizeof(program) / sizeof(u8);
-    SystemIO::printf("Program size: %u\n", progSize);
-
-    machine.load_program(program, progSize, program_heap);
-    int rc = machine.start_program();
-    machine.register_dump();
-
-    SystemIO::printf("VirtualMachine returned with %d\n", rc);
 }
 
 void loop()
 {
-    u32 bytesRead = SystemIO::gets(commandLineStatement, MAX_STATEMENT_LENGTH);
+    u32 bytesRead = SystemIO::gets(CLS, MAX_STATEMENT_LENGTH);
     if (bytesRead <= 0)
         return;
 
     // We are going to trim the '\r\n'
-    commandLineStatement[bytesRead] = '\0';
+    CLS[bytesRead] = '\0';
 
-    SystemIO::printf("Statement: %s, length: %u\n", commandLineStatement, strlen(commandLineStatement));
-
-    CommandLine::FunctionPackage* function = CMD.process_statement(commandLineStatement);
+    CommandLine::FunctionPackage* function = CMD.process_statement(CLS);
 
     if (function != nullptr) {
         runCMDFunction(function);
     } else {
-        SystemIO::printf("Function recieved is nullptr\n");
+        SystemIO::printf("%s is not valid command\n", CLS);
     }
 }
 
@@ -120,6 +191,13 @@ void loadEverything()
         SystemIO::printf("[SDCardFileStream::card.begin()] FATAL ERROR: FAILED TO INITIALIZE SD CARD");
         while (1) yield();
     }
+    else
+    {
+        SystemIO::printf("SUCCESS: INITIALIZED SD CARD AND FAT32 FILE SYSTEMS");
+    }
+
+    CMD.register_function("listdir", listdir);
+    CMD.register_function("start", run_program);
 
 #endif
 }

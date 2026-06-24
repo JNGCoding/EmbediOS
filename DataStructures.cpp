@@ -418,75 +418,79 @@ void EmbediString::shrink_to_size()
     this->data = space;
 }
 
-bool EmbediString::replace(const char* old, const char* sequence)
+void EmbediString::replace(const char oldc, const char newc)
 {
-    const TypeMacros::u32 old_len = strlen(old);
-    const TypeMacros::u32 new_len = strlen(sequence);
-
-    // We will add it to the current length after each change
-    TypeMacros::u32 delta_len = new_len - old_len;
-
-    // We don't have to allocate any new memory
-    if (old_len > new_len)
+    for (TypeMacros::u32 i = 0; i < this->len; i++)
     {
-        for (TypeMacros::u32 i = 0; i + new_len < this->len; i++)
-        {
-            if (this->data[i] == sequence[0])
-            {
-                bool flag = true;
-                for (TypeMacros::u32 j = i + 1; j - i < new_len; j++)
-                {
-                    if (this->data[j] != sequence[j - i])
-                    {
-                        flag = false;
-                        break;
-                    }
-                }
+        if (this->data[i] == oldc)
+            this->data[i] = newc;
+    }
+}
 
-                if (flag)
-                {
-                    // TODO: WE HAVE FOUND A MATCH
-                }
-            }
+void EmbediString::replace(const char oldc, const char newc, const TypeMacros::u32 start, const TypeMacros::u32 end)
+{
+    if (start > end)
+        return;
+
+    if (start >= this->len)
+        return;
+
+    for (TypeMacros::u32 i = start; i < __min(end, this->len); i++)
+    {
+        if (this->data[i] == oldc)
+            this->data[i] == newc;
+    }
+}
+
+void EmbediString::remove(const char oldc)
+{
+    for (TypeMacros::u32 i = 0; i < this->len; i++)
+    {
+        if (this->data[i] == oldc)
+        {
+            for (TypeMacros::u32 j = i; j < this->len - 1; j++)
+                this->data[j] = this->data[j + 1];
+
+            this->len--;
+            i--;
         }
     }
-    else if (old_len == new_len)
+}
+
+void EmbediString::remove(const char oldc, const TypeMacros::u32 start, const TypeMacros::u32 end)
+{
+    if (start > end)
+        return;
+
+    if (start >= this->len)
+        return;
+
+    for (TypeMacros::u32 i = start; i < __min(end, this->len); i++)
     {
-        for (TypeMacros::u32 i = 0; i + new_len < this->len; i++)
+        if (this->data[i] == oldc)
         {
-            if (this->data[i] == sequence[0])
-            {
-                bool flag = true;
-                for (TypeMacros::u32 j = i + 1; j - i < new_len; j++)
-                {
-                    if (this->data[j] != sequence[j - i])
-                    {
-                        flag = false;
-                        i = j;
-                        break;
-                    }
-                }
+            for (TypeMacros::u32 j = i; j < this->len - 1; j++)
+                this->data[j] = this->data[j + 1];
 
-                if (flag)
-                {
-                    for (TypeMacros::u32 j = i; j - i < new_len; j++)
-                        this->data[j] = sequence[j - i];
-
-                    i += new_len;
-                }
-            }
+            this->len--;
+            i--;
         }
     }
-    // Consider: We may have to allocate new memory for extended string
-    else
-    {
-    }
-
-    return false;
 }
 
 const char* EmbediString::c_str()
 {
+    if (this->len == this->capacity)
+    {
+        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+
+        void* space = this->allocator->reshape(this->data, ncap);
+        if (space == nullptr)
+            return "[EmbediString::c_str()] -> null";
+
+        this->capacity = ncap;
+    }
+
     this->data[this->len] = '\0';
     return this->data;
 }

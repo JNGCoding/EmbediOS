@@ -45,9 +45,10 @@ EmbediArenaAllocator::~EmbediArenaAllocator()
     {
         for (int i = 0; i < this->numBlocks; i++)
             basicAllocator.destroy(this->blocks[i]);
+    
+        basicAllocator.destroy(this->blocks);
     }
 
-    basicAllocator.destroy(this->blocks);
 }
 
 bool EmbediArenaAllocator::arena_alloc_block()
@@ -327,6 +328,9 @@ TypeMacros::memptr EmbediRandomAccessMemoryAllocator::alloc(TypeMacros::u32 size
 
 bool EmbediRandomAccessMemoryAllocator::destroy(TypeMacros::memptr mem)
 {
+    if (mem == nullptr)
+        return false;
+
     TypeMacros::u8* ptr = static_cast<TypeMacros::u8*>(mem) - 5;
 
     if (ptr < this->buffer || ptr > (this->buffer + this->capacity))
@@ -344,6 +348,9 @@ bool EmbediRandomAccessMemoryAllocator::destroy(TypeMacros::memptr mem)
 
 TypeMacros::memptr EmbediRandomAccessMemoryAllocator::reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
 {
+    if (mem == nullptr)
+        return this->alloc(size);
+    
     TypeMacros::u8* ptr = static_cast<TypeMacros::u8*>(mem) - 5;
 
     if (ptr < this->buffer || ptr > (this->buffer + this->capacity))

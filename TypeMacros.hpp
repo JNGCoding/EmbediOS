@@ -23,8 +23,8 @@ namespace TypeMacros
     using uintptr = uintptr_t;
 };
 
-constexpr TypeMacros::u32 Kb(TypeMacros::u32 x) { return x * 1024; }
-constexpr TypeMacros::u32 Mb(TypeMacros::u32 x) { return 1024 * Kb(x); }
+constexpr TypeMacros::u32 Kb(double x) { return x * 1024; }
+constexpr TypeMacros::u32 Mb(double x) { return 1024 * Kb(x); }
 
 #define __max(x, y) (((x) > (y)) ? (x) : (y))
 #define __min(x, y) (((x) < (y)) ? (x) : (y))

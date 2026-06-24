@@ -106,44 +106,104 @@ public:
     // `index` index of the character
     char* get_char(const TypeMacros::u32 index);
 
+    // Returns a bool indicating the presence of a substr in the data buffer
+    // `substr` the substring sequence to search for
     bool contains(const char* substr);
 
+    // Returns a bool indicating the presence of a substr in the data buffer
+    // `substr` the EmbediString instance whose contents to search for
     bool contains(const EmbediString& substr);
 
+    // Returns true if the data buffer only contains white-space characters
     bool is_blank();
 
+    // Returns true if the data buffer only contains digits
     bool is_digit();
 
+    // Returns true if the data buffer only contains ascii characters
     bool is_ascii();
 
+    // Return true if length = 0
     bool is_nothing();
 
+    // Enforces all the upper characters to their lower counterparts
     void lower();
 
+    // Enforces all the lower characters to their upper counterparts
     void upper();
 
+    // Appends a string to the data buffer
+    // `str` string to append
+    // returns true if success else false
     bool append(const char* str);
 
+    // Appends a string to the data buffer
+    // `str` string to append
+    // `start` from which index of the `str` to start
+    // returns true if success else false
     bool append(const char* str, const TypeMacros::u32 start);
 
+    // Appends a string to the data buffer
+    // `str` string to append
+    // `start` from where to start appending in the `str`
+    // `end` from where to end appending in the `str`
+    // returns true if success else false
     bool append(const char* str, const TypeMacros::u32 start, const TypeMacros::u32 end);
 
+    // Appends a string to the data buffer
+    // `str` EmbediString instance to append
+    // returns true if success else false
     bool append(const EmbediString& str);
 
+    // Appends a string to the data buffer
+    // `str` EmbediString instance to append
+    // `start` from which index of the `str` to start
+    // returns true if success else false
     bool append(const EmbediString& str, const TypeMacros::u32 start);
 
+    // Appends a string to the data buffer
+    // `str` EmbediString instance to append
+    // `start` from where to start appending in the `str`
+    // `end` from where to end appending in the `str`
+    // returns true if success else false
     bool append(const EmbediString& str, const TypeMacros::u32 start, const TypeMacros::u32 end);
 
-    bool replace(const char* old, const char* sequence);
+    // Replaces any previously existing character with a new character in the buffer
+    // `oldc` old character (to be replaced)
+    // `newc` new character (the replacement)
+    void replace(const char oldc, const char newc);
 
+    // Replaces any previously existing character under a substring of the main data buffer
+    // `oldc` old character (to be replaced)
+    // `newc` new character (the replacement)
+    // `start` index where the scanning will start from
+    // `end` index where the scanning will be end
+    void replace(const char oldc, const char newc, const TypeMacros::u32 start, const TypeMacros::u32 end);
+
+    // Removes all instances of an existing character in the data buffer
+    // `oldc` old character (to be removed)
+    void remove(const char oldc);
+
+    // Removes all instances of an existing character in the data buffer under a substring of the main data buffer
+    // `oldc` old character (to be removed)
+    // `start` index where the scanning will start from
+    // `end` index where the scanning will be end
+    void remove(const char oldc, const TypeMacros::u32 start, const TypeMacros::u32 end);
+
+    // Sets the append index to 0
+    // All the previously written data is preserved
     void clear();
 
+    // Shrinks the internal buffer size to the length of the string
     void shrink_to_size();
 
+    // Returns a C-Style string
     const char* c_str();
 
+    // Returns the length of the string
     TypeMacros::u32 length() const;
 
+    // Returns true if both strings are equal else false
     bool equals(const EmbediString& other);
 };
 
@@ -160,20 +220,32 @@ private:
     TypeMacros::u32 count = 0;
 
 public:
+    // Initialize the list instance with an allocator specified defaulted to basicAllocator
+    // `_allocator` allocator instance on which the memory for the list will be allocated
     explicit EmbediList(EmbediAllocator* _allocator = &basicAllocator)
     {
         assert(_allocator != nullptr && "[EmbediList::EmbediList()] FATAL ERROR: ALLOCATOR WAS NULL");
         this->allocator = _allocator;
     }
 
-    TypeMacros::u32 copy(EmbediList& other)
+    // Copies another list
+    // `other` EmbediList instance to copy from
+    // Returns the amount of elements the instance was successfully able to copy
+    TypeMacros::u32 copy(EmbediList& other, const TypeMacros::u32 cap_size)
     {
+        this->clear();
+
         ListNode* other_cur = other.tail;
         TypeMacros::u32 elements_added = 0;
 
         while (other_cur->head != nullptr) {
-            if (!this->push(other_cur->value))
-                return elements_added;
+            if (elements_added < cap_size)
+            {
+                if (!this->push(other_cur->value))
+                    return elements_added;
+
+                elements_added++;
+            }
 
             other_cur = other_cur->head;
             elements_added++;
@@ -187,6 +259,8 @@ public:
         this->clear();
     }
 
+    // Returns the pointer to the object stored at the index specified if success else nullptr
+    // `index` the index position of the object
     T* get(const TypeMacros::u32 index)
     {
         if (index >= this->count)
@@ -212,6 +286,9 @@ public:
         return result;
     }
 
+    // Changes the value of the object stored at the index specified
+    // `index` the index position of the object
+    // warning: no action taken if any error occurs
     void set(const T& value, const TypeMacros::u32 index)
     {
         if (index >= this->count) return;
@@ -234,6 +311,9 @@ public:
         cur->value = value;
     }
 
+    // Appends a value to the ending of the list
+    // `element` object to append
+    // Returns true if successful else false
     bool append(const T& element)
     {
         if (this->head == nullptr)
@@ -266,6 +346,10 @@ public:
         return true;
     }
 
+    // Inserts an element at the index specified
+    // `element` object to insert
+    // `index` the desired index of the object
+    // Returns true if success else false
     bool insert(const T& element, const TypeMacros::u32 index)
     {
         if (index >= this->count) return false;
@@ -324,6 +408,9 @@ public:
         return true;
     }
 
+    // Removes an element at the index specified
+    // `index` index position of the object
+    // Returns true if success else false
     bool remove(const TypeMacros::u32 index)
     {
         if (this->count == 0 || index >= this->count)
@@ -385,12 +472,15 @@ public:
         return true;
     }
 
+    // Removes all the objects from the list
     void clear()
     {
         while (this->count > 0)
             this->remove(this->count - 1);
     }
 
+    // Checks if this instance equals to the other instance
+    // `other` the second EmbediList instance for the scan
     bool equals(EmbediList& other)
     {
         if (this->size() != other.count)
@@ -416,16 +506,19 @@ public:
         return flag;
     }
 
+    // Returns the size of the list
     TypeMacros::u32 size() const
     {
         return this->count;
     }
 
+    // Returns a pointer to the DoublyNode<T> instance of the tail of the list
     ListNode* get_tail()
     {
         return this->tail;
     }
 
+    // Returns a pointer to the DoublyNode<T> instance of the head of the list
     ListNode* get_head()
     {
         return this->head;
@@ -440,20 +533,21 @@ private:
     T* buffer = nullptr;
     TypeMacros::u32 count = 0;
     const TypeMacros::u32 capacity;
-    bool heapBufferAllocated = false;
 
 public:
+    // Initalize the stack instance with a pre-allocated buffer to enforce flexibility
+    // `buf` the buffer on which the instance will operate
+    // `cap_size` maximum capacity of the stack
     explicit EmbediStack(T* buf, const TypeMacros::u32 cap_size) : capacity(cap_size)
     {
-        if (buf == nullptr)
-        {
-            this->buffer = static_cast<T*>(basicAllocator.alloc(sizeof(T) * cap_size));
-            assert(this->buffer != nullptr && "[EmbediStack::EmbediStack(T*, TypeMacros::u32)] FATAL ERROR: FAILED TO ALLOCATE BUFFER ON BASIC ALLOCATOR");
-            this->heapBufferAllocated = true;
-        }
-        else this->buffer = buf;
+        assert(this->buffer != nullptr && "[EmbediStack::EmbediStack(T*, TypeMacros::u32)] FATAL ERROR: BUFFER PASSED WAS NULL");
+        this->buffer = buf;
     }
 
+    // Copies another stack
+    // `other` the other EmbediStack instance
+    // `cpy_size` Specifies how much data to copy
+    // Returns the amount of elements the instance was successfully able to copy
     TypeMacros::u32 copy(EmbediStack& other, const TypeMacros::u32 cpy_size) const
     {
         this->clear();
@@ -467,12 +561,8 @@ public:
         return cpy_size;
     }
 
-    ~EmbediStack()
-    {
-        if (this->heapBufferAllocated)
-            basicAllocator.destroy(this->buffer);
-    }
-
+    // Pushes an object onto the stack buffer
+    // Returns true if no Stack Overflow error occured else false
     bool push(const T& element)
     {
         if (this->count >= this->capacity)
@@ -482,6 +572,7 @@ public:
         return true;
     }
 
+    // Returns the pointer of the object stored at the head of the stack and decrements the stack pointer, if size = 0 then returns nullptr
     T* pop()
     {
         if (this->count <= 0)
@@ -490,6 +581,7 @@ public:
         return &this->buffer[(this->count--) - 1];
     }
 
+    // Returns the pointer of the object stored at the head of the stack, if size = 0 then returns nullptr
     T* peek()
     {
         if (this->count <= 0)
@@ -498,21 +590,26 @@ public:
         return &this->buffer[this->count - 1];
     }
 
+    // Sets the stack pointer to 0
     void clear()
     {
         this->count = 0;
     }
 
+    // Returns the size of the stack
     TypeMacros::u32 size() const
     {
         return this->count;
     }
 
+    // Returns a constant pointer to the internal stack buffer
     const T* get_buffer() const
     {
         return this->buffer;
     }
 
+    // Checks if this instance equals to the other instance
+    // `other` the second EmbediStack instance for the scan
     bool equals(const EmbediStack& other)
     {
         if (this->count != other.count)
@@ -542,6 +639,8 @@ public:
     constexpr static TypeMacros::f32 MULTIPLY_FACTOR = 2.0f;
     constexpr static TypeMacros::u32 PRE_ALLOCATE_DURING_CONSTRUCTION = 10;
 
+    // Initialize the dynamic stack instance with an allocator specified
+    // `_allocator` allocator instance on which the memory for the stack will be allocated
     explicit EmbediDynamicStack(EmbediAllocator* _allocator = &basicAllocator)
     {
         assert(_allocator != nullptr && "[EmbediDynamicStack::EmbediDynamicStack()] FATAL ERROR: ALLOCATOR WAS NULL");
@@ -558,6 +657,10 @@ public:
         this->capacity = EmbediDynamicStack::PRE_ALLOCATE_DURING_CONSTRUCTION;
     }
 
+    // Copies another dynamic stack
+    // `other` EmbediDynamicStack instance to copy from
+    // `cpy_size` the amount of the elements to copy
+    // Returns the amount of elements the instance was successfully able to copy
     TypeMacros::u32 copy(EmbediDynamicStack& other, const TypeMacros::u32 cpy_size)
     {
         this->clear();
@@ -580,6 +683,8 @@ public:
         this->allocator->destroy(this->buffer);
     }
 
+    // Pushes an object onto the dynamic stack buffer
+    // Returns true if success occured else false
     bool push(const T& element)
     {
         if (this->count >= this->capacity)
@@ -596,6 +701,7 @@ public:
         return true;
     }
 
+    // Returns the pointer of the object stored at the head of the stack and decrements the stack pointer, if size = 0 then returns nullptr
     T* pop()
     {
         if (this->count <= 0)
@@ -604,6 +710,7 @@ public:
         return &this->buffer[(this->count--) - 1];
     }
 
+    // Returns the pointer of the object stored at the head of the stack, if size = 0 then returns nullptr
     T* peek()
     {
         if (this->count <= 0)
@@ -612,11 +719,14 @@ public:
         return &this->buffer[this->count - 1];
     }
 
+    // Sets the stack pointer to 0
     void clear()
     {
         this->count = 0;
     }
 
+    // Checks if this instance equals to the other instance
+    // `other` the second EmbediStack instance for the scan
     bool equals(EmbediDynamicStack& other)
     {
         if (this->count != other.count)
@@ -631,16 +741,19 @@ public:
         return true;
     }
 
+    // Returns the size of the dynamic stack
     TypeMacros::u32 size() const
     {
         return this->count;
     }
 
+    // Returns the current capacity of the dynamic stack
     TypeMacros::u32 cap_size() const
     {
         return this->capacity;
     }
 
+    // Shrinks the internal buffer size to the size of the dynamic stack
     void shrink_to_size()
     {
         if (this->capacity == this->count)
@@ -653,6 +766,7 @@ public:
         this->data = space;
     }
 
+    // Returns a constant pointer to the internal buffer
     const T* get_buffer() const
     {
         return this->buffer;
@@ -671,72 +785,82 @@ private:
     TypeMacros::u32 readPtr = 0;
     TypeMacros::u32 count = 0;
 
-    bool heapBufferAllocated = false;
-
 public:
+    // Initializes the RingBuffer with a pre-allocated buffer specified
+    // `buf` pre-allocated buffer to enforce flexibility
+    // `cap_size` Size of the operating buffer
     explicit EmbediRingBuffer(T* buf, const TypeMacros::u32 cap_size) : capacity(cap_size)
     {
-        if (buf == nullptr)
-        {
-            this->buffer = static_cast<T*>(basicAllocator.alloc(sizeof(T) * cap_size));
-            this->heapBufferAllocated = true;
-            assert(this->buffer != nullptr && "[EmbediRingBuffer::EmbediRingBuffer(T*, TypeMacros::u32)] FATAL ERROR: FAILED TO ALLOCATE BUFFER ON BASIC ALLOCATOR");
-        }
-        else this->buffer = buf;
+        assert(this->buffer != nullptr && "[EmbediRingBuffer::EmbediRingBuffer] FATAL ERROR: FAILED TO ALLOCATE BUFFER");
+        this->buffer = buf;
     }
 
-    TypeMacros::u32 copy(const EmbediRingBuffer& other)
-    {
-        this->clear();
-
-        if (this->count != other.count)
-            return 0;
-
-        memcpy(this->buffer, other.buffer, sizeof(T) * other.count);
-
-        return other.count;
-    }
-
-    ~EmbediRingBuffer()
-    {
-        if (this->heapBufferAllocated)
-            basicAllocator.destroy(this->buffer);
-    }
-
+    // Pushes an element on the buffer of the ring buffer
     void push(const T& element)
     {
-        this->buffer[this->appendPtr++] = element;
-        this->appendPtr %= this->capacity;
+        this->buffer[this->appendPtr] = element;
+        this->appendPtr = (this->appendPtr + 1) % this->capacity;
 
-        this->count++;
-        if (this->count >= this->capacity)
-            this->count = this->capacity;
+        if (this->count < this->capacity)
+            this->count++;
+        else
+            this->readPtr = (this->readPtr + 1) % this->capacity;
     }
 
+    // Pops out an element on the buffer if size > 0 and returns its pointer, if size <= 0 then returns nullptr
     T* pop()
     {
-        if (this->count <= 0)
+        if (this->count == 0)
             return nullptr;
 
-        T* result = &this->buffer[this->readPtr++];
-        this->readPtr %= this->capacity;
+        T* result = &this->buffer[this->readPtr];
+        this->readPtr = (this->readPtr + 1) % this->capacity;
         this->count--;
 
         return result;
     }
 
+    // Returns the pointer to the object in the buffer at readPtr
+    T* peek()
+    {
+        if (this->count == 0)
+            return nullptr;
+
+        return &this->buffer[this->readPtr];
+    }
+
+    // Resets the internal registers to 0
     void clear()
     {
-        this->appendPtr = this->readPtr;
+        this->appendPtr = 0;
+        this->readPtr = 0;
         this->count = 0;
     }
 
+    // Returns the size of the ring buffer
     TypeMacros::u32 size() const
     {
         return this->count;
     }
+
+    // Copies another ring buffer
+    // `other` EmbediRingBuffer instance to copy from
+    // Returns the amount of elements the instance was successfully able to copy
+    TypeMacros::u32 copy(const EmbediRingBuffer& other)
+    {
+        if (this->capacity != other.capacity)
+            return 0;
+
+        this->clear();
+        for (TypeMacros::u32 i = 0; i < other.count; i++)
+        {
+            this->push(other.buffer[(other.readPtr + i) % other.capacity]);
+        }
+        return other.count;
+    }
 };
 
+// Generic Vector Data Structure
 template<typename T>
 class EmbediVector
 {
@@ -750,6 +874,8 @@ public:
     constexpr static TypeMacros::f32 MULTIPLY_FACTOR = 2.0f;
     constexpr static TypeMacros::u32 PRE_ALLOCATE_DURING_CONSTRUCTION = 10;
 
+    // Initialize the vector instance with an allocator specified defaulted to basicAllocator
+    // `_allocator` allocator instance on which the memory for the vector buffers will be allocated
     EmbediVector(EmbediAllocator* _allocator = &basicAllocator)
     {
         assert(_allocator != nullptr && "[EmbediVector::EmbediVector()] FATAL ERROR: ALLOCATOR WAS NULL");
@@ -772,6 +898,10 @@ public:
             this->allocator->destroy(this->buffer);
     }
 
+    // Copies another vector
+    // `other` EmbediVector instance to copy from
+    // `cpy_size` the amount of the elements to copy
+    // Returns the amount of elements the instance was successfully able to copy
     TypeMacros::u32 copy(const EmbediVector& other, const TypeMacros::u32 cpy_size)
     {
         this->clear();
@@ -789,6 +919,9 @@ public:
         return elements_added;
     }
 
+    // Appends an element to the end of the vector
+    // `value` the object to append
+    // Returns true if success else false
     bool add(const T& value)
     {
         if (this->count >= this->capacity)
@@ -805,6 +938,10 @@ public:
         return true;
     }
 
+    // Adds an element at the index specified in the vector
+    // `value` the object to append
+    // `index` the desired index position of the appending object
+    // Returns true if success else false
     bool insert(const T& value, const TypeMacros::u32 index)
     {
         if (index >= this->count)
@@ -829,6 +966,9 @@ public:
         return true;
     }
 
+    // Removes the object at the index position specified
+    // `index` the index position of the object to be removed
+    // Returns true if success else false
     bool remove(const TypeMacros::u32 index)
     {
         if (index >= this->count)
@@ -842,6 +982,7 @@ public:
         return true;
     }
 
+    // Pops an object of from the internal buffers and return its pointer, if size = 0 then returns nullptr
     T* pop()
     {
         if (this->count <= 0)
@@ -852,6 +993,8 @@ public:
         return result;
     }
 
+    // Returns the pointer to the object at the index specified if success else nullptr
+    // `index` index position of the object whose pointer will be returned
     T* get(const TypeMacros::u32 index)
     {
         if (index >= this->count)
@@ -860,6 +1003,9 @@ public:
         return &this->buffer[index];
     }
 
+    // Places a value at the index specified
+    // `index` desired index position
+    // Returns true if index < size else false
     bool set(const T& value, const TypeMacros::u32 index)
     {
         if (index >= this->count)
@@ -870,11 +1016,13 @@ public:
         return false;
     }
 
+    // Sets the append index to 0
     void clear()
     {
         this->count = 0;
     }
 
+    // Shrinks the internal buffer size to the size of the vector
     void shrink_to_size()
     {
         if (this->count == this->capacity)
@@ -887,11 +1035,19 @@ public:
         this->buffer = space;
     }
 
+    // Returns the internal buffer as a const pointer
+    const T* get_buffer() const
+    {
+        return this->buffer;
+    }
+
+    // Returns the size of the vector
     TypeMacros::u32 size() const
     {
         return this->count;
     }
 
+    // Returns the current capacity of the vector
     TypeMacros::u32 cap_size() const
     {
         return this->capacity;
@@ -978,16 +1134,22 @@ private:
     EmbediList<Entry>* buckets = nullptr;
     const TypeMacros::u32 numBuckets;
     TypeMacros::u32 count = 0;
+    EmbediAllocator* allocator = nullptr;
 
 public:
     constexpr static TypeMacros::u32 DEFAULT_NUM_BUCKETS = 10;
 
+    // Initialize the hash table instance with the number of buckets and allocator (defaulted to basicAllocator) specified
+    // `_numBuckets` the number of buckets
+    // `_allocator` allocator instance on which the memory of the hash table will be allocated
     explicit EmbediHashTable(const TypeMacros::u32 _numBuckets = EmbediHashTable::DEFAULT_NUM_BUCKETS, EmbediAllocator* _allocator = &basicAllocator)
         : numBuckets(_numBuckets)
     {
         assert(_allocator != nullptr && "[EmbediHashTable::EmbediHashTable()] FATAL ERROR: ALLOCATOR WAS NULL");
 
-        this->buckets = basicAllocator.alloc( sizeof(EmbediList<Entry>*) * _numBuckets );
+        this->allocator = _allocator;
+
+        this->buckets = this->allocator->alloc( sizeof(EmbediList<Entry>*) * _numBuckets );
         if (this->buckets == nullptr)
         {
             SystemIO::perror("[EmbediHashTable::EmbediHashTable()] ERROR: FAILED TO ALLOCATE BUCKETS FOR HASHTABLE. IMPLICATIONS IMMINENT");
@@ -999,7 +1161,7 @@ public:
 
         for (TypeMacros::u32 i = 0; i < this->numBuckets; i++)
         {
-            EmbediList<Entry>* bucket = basicAllocator.alloc( sizeof(EmbediList<Entry>) );
+            EmbediList<Entry>* bucket = this->allocator->alloc( sizeof(EmbediList<Entry>) );
 
             // Fatal Error to be honest but I don't want to crash the operating system
             // due to errors, I want to give it a change to assess errors
@@ -1020,12 +1182,16 @@ public:
         for (TypeMacros::u32 i = 0; i < this->numBuckets; i++)
         {
             this->buckets[i]->clear();
-            basicAllocator.destroy(this->buckets[i]);
+            this->allocator->destroy(this->buckets[i]);
         }
 
-        basicAllocator.destroy(this->buckets);
+        this->allocator->destroy(this->buckets);
     }
 
+    // Adds a <Key, Value> pair to the internal buckets
+    // `key` key of the pair
+    // `value` value of the pair
+    // Returns true if success else false
     bool add(const K& key, const V& value)
     {
         if (this->get(key) != nullptr)
@@ -1046,6 +1212,9 @@ public:
             return false;
     }
 
+    // Removes a <key, value> pair from the internal buckets
+    // `key` key of the pair
+    // Returns true if success else false
     bool remove(const K& key)
     {
         TypeMacros::u32 hash = EMBEDI_GENERIC_HASH_FUNCTION<K>(key);
@@ -1063,6 +1232,8 @@ public:
         return false;
     }
 
+    // Returns a pointer to the value under the <key, value> pair if key is found else nullptr
+    // `key` key of the pair
     V* get(const K& key)
     {
         TypeMacros::u32 hash = EMBEDI_GENERIC_HASH_FUNCTION<K>(key);
@@ -1080,6 +1251,8 @@ public:
         return nullptr;
     }
 
+    // Returns a pointer to the <key, value> pair if key is found else nullptr
+    // `key` key of the pair
     const Entry* get_entry(const K& key)
     {
         TypeMacros::u32 hash = EMBEDI_GENERIC_HASH_FUNCTION<K>(key);
@@ -1097,11 +1270,13 @@ public:
         return nullptr;
     }
 
+    // Returns the amount of elements in the hash table
     TypeMacros::u32 size() const
     {
         return this->count;
     }
 
+    // Removes all the element from all the buckets in the hash table
     void clear()
     {
         for (TypeMacros::u32 i = 0; i < this->numBuckets; i++)

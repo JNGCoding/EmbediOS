@@ -250,6 +250,19 @@ namespace SystemIO {
         allFiles.remove(allFiles.get_handle(streamName));
     }
 
+    void fflush(const char* streamName)
+    {
+        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        if (stream != nullptr)
+            stream->flush();
+    }
+
+    void fflush(EmbediFileStream* stream)
+    {
+        if (stream != nullptr)
+            stream->flush();
+    }
+
     TypeMacros::u8 fgetc(const char* streamName)
     {
         EmbediFileStream* stream = allFiles.get_handle(streamName);

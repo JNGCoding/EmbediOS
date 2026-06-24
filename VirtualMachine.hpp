@@ -23,6 +23,13 @@ constexpr TypeMacros::u8 FLOAT_REGISTER_SPACE = 16;
 constexpr TypeMacros::u8 INTEGER_OFFSET = 1;
 constexpr TypeMacros::u8 FLOAT_OFFSET = 20;
 
+// New instructions to add
+// write <address> <value>
+// hext <size>
+// hshr <size>
+// inc <container>
+// dec <container>
+
 namespace Instructions
 {
     constexpr TypeMacros::u8 nop      = 0;
@@ -55,7 +62,7 @@ namespace Instructions
 
 namespace Syscalls
 {
-    constexpr int StdoutWrite = 1;
+    constexpr TypeMacros::i32 StdoutWrite = 1;
 }
 
 namespace VMErrors
@@ -64,6 +71,9 @@ namespace VMErrors
     constexpr int HALTED = 1;
     constexpr int REGISTER_NOT_DEFINED = -1290;
     constexpr int INSTRUCTION_NOT_DEFINED = -2304;
+    constexpr int INVALID_STACK_OFFSET = -1223;
+    constexpr int STACK_OVERFLOW = -2901;
+    constexpr int STACK_UNDERFLOW = -1297;
 };
 
 struct VirtualMachine
@@ -102,8 +112,8 @@ struct VirtualMachine
     // Stack Pointer
     TypeMacros::u32 SP = 0;
 
-    // Stack Base Pointer
-    TypeMacros::u8* BP = &STACK;
+    // Base Pointer to a stack frame
+    TypeMacros::u8 BP = 0;
 
     // Random Access Memory Block
     TypeMacros::u8* HEAP = nullptr;
@@ -111,6 +121,10 @@ struct VirtualMachine
     // Debuggers
     bool errorFlag = false;
     int errorCode = VMErrors::PASS;
+
+    // Streams
+    EmbediFileStream* outStream = nullptr;
+    EmbediFileStream* inStream  = nullptr;
 
     // Some basic helper functions
     TypeMacros::u8 read8()
@@ -121,7 +135,8 @@ struct VirtualMachine
     { return static_cast<TypeMacros::u32>(read16()) << 16 | static_cast<TypeMacros::u32>(read16()); }
 
     // This function resets the state of virtual machine
-    void load_program(TypeMacros::u8* _program, TypeMacros::u8 _progSize, TypeMacros::u8* memoryChunk);
+    void load_streams(EmbediFileStream* out, EmbediFileStream* in);
+    void load_program(TypeMacros::u8* _program, TypeMacros::u32 _progSize, TypeMacros::u8* memoryChunk);
 
     int start_program();
 

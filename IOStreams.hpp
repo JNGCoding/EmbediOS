@@ -76,7 +76,7 @@ extern FileTable allFiles;
 
 struct StandardOutput : public EmbediFileStream
 {
-    StandardOutput() { this->descriptor = {"stdout", "", WRITE}; }
+    StandardOutput() { this->descriptor = {SYSOUT_NAME, "", WRITE}; }
 
     bool write(const TypeMacros::u8 _byte) override;
     TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override;
@@ -85,7 +85,7 @@ struct StandardOutput : public EmbediFileStream
 
 struct StandardInput : public EmbediFileStream
 {
-    StandardInput() { this->descriptor = {"stdin", "", READ }; }
+    StandardInput() { this->descriptor = {SYSIN_NAME, "", READ }; }
     
     TypeMacros::u8 read() override;
     TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) override;
@@ -94,7 +94,7 @@ struct StandardInput : public EmbediFileStream
 
 struct StandardError : public EmbediFileStream
 {
-    StandardError() { this->descriptor = {"stderr", "", READ | WRITE}; }
+    StandardError() { this->descriptor = {SYSERR_NAME, "", READ | WRITE}; }
 };
 
 // Implementation of SD Card reading
@@ -127,6 +127,9 @@ namespace SystemIO {
 
     void fputc(const char* streamName, const TypeMacros::u8 c);
     void fputc(EmbediFileStream* stream, const TypeMacros::u8 c);
+
+    void fflush(const char* streamName);
+    void fflush(EmbediFileStream* stream);
 
     TypeMacros::u32 fputs(const char* streamName, const char* str);
     TypeMacros::u32 fputs(EmbediFileStream* stream, const char* str);
