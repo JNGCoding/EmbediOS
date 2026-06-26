@@ -187,21 +187,8 @@ void EmbediArenaAllocator::dump(const char* streamName)
 // ------------------------------ LINEAR ALLOCATOR ------------------------------
 EmbediLinearAllocator::EmbediLinearAllocator(TypeMacros::u8* buf, TypeMacros::u32 cap_size) : cap(cap_size)
 {
-    if (this->buffer == nullptr)
-    {
-        SystemIO::perror("[EmbediLinearAllocator::EmbediLinearAllocator(u8*, TypeMacros::u32)] ERROR: NULLPTR PASSED, CREATING BUFFER ON BASIC ALLOCATOR");
-
-        this->buffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->cap));
-        assert(this->buffer != nullptr && "[EmbediLinearAllocator::EmbediLinearAllocator(TypeMacros::u32)] FATAL ERROR: MEMORY ALLOCATION FAILED");
-        this->heapBufferAllocated = true;
-    }
-    else this->buffer = buf;
-}
-
-EmbediLinearAllocator::~EmbediLinearAllocator()
-{
-    if (this->heapBufferAllocated)
-        basicAllocator.destroy(this->buffer);
+    assert(buf != nullptr && "[EmbediLinearAllocator::EmbediLinearAllocator(TypeMacros::u32)] FATAL ERROR: BUFFER PROVIDED WAS NULL");
+    this->buffer = buf;
 }
 
 TypeMacros::memptr EmbediLinearAllocator::alloc(TypeMacros::u32 size)
@@ -257,20 +244,8 @@ inline void write_u32(TypeMacros::u8* ptr, TypeMacros::u32 sz32)
 
 EmbediRandomAccessMemoryAllocator::EmbediRandomAccessMemoryAllocator(TypeMacros::u8* buf, const TypeMacros::u32 cap_size) : capacity(cap_size)
 {
-    if (buf == nullptr)
-    {
-        this->buffer = static_cast<TypeMacros::u8*>( basicAllocator.alloc(cap_size) );
-        assert(this->buffer != nullptr && "[EmbediRandomAccessMemoryAllocator::EmbediRandomAccessMemoryAllocator(u8*, TypeMacros::u32)] FATAL ERROR: FAILED TO ALLOCATE MEMORY CHUNK");
-        this->heapBufferAllocated = true;
-    }
-    this->buffer = buf;
-    
-}
-
-EmbediRandomAccessMemoryAllocator::~EmbediRandomAccessMemoryAllocator()
-{
-    if (this->heapBufferAllocated)
-        basicAllocator.destroy(this->buffer);
+    assert(buf != nullptr && "[EmbediRandomAccessMemoryAllocator::EmbediRandomAccessMemoryAllocator(u8*, TypeMacros::u32)] FATAL ERROR: FAILED TO ALLOCATE MEMORY CHUNK");
+    this->buffer = buf;    
 }
 
 TypeMacros::memptr EmbediRandomAccessMemoryAllocator::alloc(TypeMacros::u32 size)
@@ -422,5 +397,5 @@ void EmbediRandomAccessMemoryAllocator::dump(const char* streamName)
 
 void EmbediRandomAccessMemoryAllocator::reset()
 {
-    memset(this->buffer, 0, this->capacity);
+    memset(this->buffer, 0, this->capacity * sizeof(TypeMacros::u8));
 }

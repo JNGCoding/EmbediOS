@@ -46,7 +46,7 @@ inline bool is_space(const char ch) {
 static int echo(int argc, const char* argv[])
 {
     for (int i = 0; i < argc; i++)
-        SystemIO::printf("%s ", argv[0]);
+        SystemIO::printf("%s ", argv[i]);
 
     SystemIO::printf("\n");
     SystemIO::flush();

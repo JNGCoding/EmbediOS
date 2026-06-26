@@ -29,5 +29,6 @@ constexpr TypeMacros::u32 Mb(double x) { return 1024 * Kb(x); }
 #define __max(x, y) (((x) > (y)) ? (x) : (y))
 #define __min(x, y) (((x) < (y)) ? (x) : (y))
 #define __abs(x) (((x) < 0) ? -(x) : (x))
+#define string_equals(s1, s2) strcmp(s1, s2) == 0
 
 #endif

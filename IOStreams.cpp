@@ -214,7 +214,7 @@ TypeMacros::u32 SDCardFileStream::tell()
     if (this->file)
         return this->file.curPosition();
 
-    return 0xFFFFFFFF;
+    return 0;
 }
 
 TypeMacros::u32 SDCardFileStream::available()
@@ -261,6 +261,23 @@ namespace SystemIO {
     {
         if (stream != nullptr)
             stream->flush();
+    }
+
+    TypeMacros::u32 favailable(const char* streamName)
+    {
+        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        if (stream == nullptr)
+            return 0;
+
+        return stream->available();
+    }
+
+    TypeMacros::u32 favailable(EmbediFileStream* stream)
+    {
+        if (stream == nullptr)
+            return 0;
+
+        return stream->available();
     }
 
     TypeMacros::u8 fgetc(const char* streamName)
@@ -642,6 +659,16 @@ namespace SystemIO {
         va_end(args);
 
         return count;
+    }
+
+    TypeMacros::u32 available()
+    {
+        if (SystemIO::standardInp == nullptr)
+            SystemIO::standardInp = allFiles.get_handle(SYSIN_NAME);
+
+        assert(SystemIO::standardInp != nullptr && "[SystemIO::available()] FATAL ERROR: Standard Input is not defined");
+
+        return SystemIO::standardInp->available();
     }
 
     void printchar(const TypeMacros::u8 c)

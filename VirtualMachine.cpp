@@ -6,16 +6,27 @@ void VirtualMachine::load_streams(EmbediFileStream* out, EmbediFileStream* in)
     this->inStream = in;
 }
 
-void VirtualMachine::load_program(TypeMacros::u8 *_program, TypeMacros::u32 _progSize, TypeMacros::u8 *memoryChunk)
+void VirtualMachine::load_program(TypeMacros::u8* _program, TypeMacros::u32 _progSize, EmbediAllocator* _allocator)
 {
     this->PROGRAM = _program;
     this->progSize = _progSize;
-    this->SP = 0;
+    this->SP = this->STACK;
+    this->SP_OFFSET = 0;
     this->PC = 0;
     this->SR = 0;
-    this->BP = 0;
+
+    for (TypeMacros::u8 i = 0; i < INTEGER_REGISTER_SPACE; i++)
+        this->IREGS[i] = 0;
+
+    for (TypeMacros::u8 i = 0; i < FLOAT_REGISTER_SPACE; i++)
+        this->FREGS[i] = 0;
+
     memset(this->STACK, 0, STACK_SIZE * sizeof(TypeMacros::u8));
-    this->HEAP = memoryChunk;
+
+    if (this->allocator != nullptr)
+        this->allocator->destroy(this->HEAP);
+
+    this->allocator = _allocator;
 }
 
 inline void set_register(VirtualMachine& vm, const TypeMacros::u8 r, const TypeMacros::i32 i, const TypeMacros::f64 f)
@@ -52,12 +63,46 @@ inline void set_register(VirtualMachine& vm, const TypeMacros::u8 r, const TypeM
     }
 }
 
-inline TypeMacros::f64 get_register(VirtualMachine& vm, const TypeMacros::u8 r) {
-    if (r >= 1 && r <= (r + INTEGER_REGISTER_SPACE))
-        return vm.IREGS[r - 1];
+inline void delta_add_register(VirtualMachine& vm, const TypeMacros::u8 r, const TypeMacros::i32 di, const TypeMacros::i32 df)
+{
+    if (r >= INTEGER_OFFSET && r <= (INTEGER_OFFSET + INTEGER_REGISTER_SPACE))
+    {
+        vm.IREGS[r - INTEGER_OFFSET] += di;
+        return;
+    }
 
-    if (r >= 20 && r <= (r + FLOAT_REGISTER_SPACE))
-        return vm.FREGS[r - 20];
+    if (r >= FLOAT_OFFSET && r <= (FLOAT_OFFSET + FLOAT_REGISTER_SPACE))
+    {
+        vm.FREGS[r - FLOAT_OFFSET] += df;
+        return;
+    }
+
+    if (r == 255)
+    {
+        vm.ACC += di;
+    }
+    else if (r == 254)
+    {
+        vm.DAT += di;
+    }
+    else if (r == 253)
+    {
+        vm.SR += di;
+    }
+    else
+    {
+        SystemIO::printf("Register definition not found\n");
+        vm.errorFlag = true;
+        vm.errorCode = VMErrors::REGISTER_NOT_DEFINED;
+    }
+}
+
+inline TypeMacros::f64 get_register(VirtualMachine& vm, const TypeMacros::u8 r) {
+    if (r >= INTEGER_OFFSET && r <= (INTEGER_OFFSET + INTEGER_REGISTER_SPACE))
+        return vm.IREGS[r - INTEGER_OFFSET];
+
+    if (r >= FLOAT_OFFSET && r <= (FLOAT_OFFSET + FLOAT_REGISTER_SPACE))
+        return vm.FREGS[r - FLOAT_OFFSET];
 
     if (r == 255)
     {
@@ -80,17 +125,8 @@ inline TypeMacros::f64 get_register(VirtualMachine& vm, const TypeMacros::u8 r) 
     }
 }
 
-// Okay thought of a method, to indicate whether I want to write
-// to heap or the stack, simple
-
-// I don't fucking know, what to do ???
-// usually, I should have used a value container arrangement
-// so a mov instruction, so maybe I will do just that
-// because data is easier to process that way
-// Should implement that in assembler
 int VirtualMachine::start_program()
 {
-    // IT FUCKIN WORKED BITCHES
     while (this->PC < this->progSize)
     {
         if (this->errorFlag)
@@ -115,6 +151,10 @@ int VirtualMachine::start_program()
             else if (valueFlag == Instructions::MemorySpotAhead)
             {
                 TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
                 value = static_cast<TypeMacros::f64>(this->HEAP[address]);
             }
             else if (valueFlag == Instructions::RegisterAhead)
@@ -132,6 +172,10 @@ int VirtualMachine::start_program()
             else if (containerFlag == Instructions::MemorySpotAhead)
             {
                 TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
                 this->HEAP[address] = static_cast<TypeMacros::u8>(value);
             }
         }
@@ -175,6 +219,10 @@ int VirtualMachine::start_program()
         {
             this->ACC = this->IREGS[0] >> this->IREGS[1];
         }
+        else if (this->IR == Instructions::vxor)
+        {
+            this->ACC = this->IREGS[0] ^ this->IREGS[1];
+        }
         else if (this->IR == Instructions::ujmp)
         {
             TypeMacros::u8 valueFlag = this->PROGRAM[this->PC++];
@@ -187,6 +235,10 @@ int VirtualMachine::start_program()
             else if (valueFlag == Instructions::MemorySpotAhead)
             {
                 TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
                 value = this->HEAP[address];
             }
             else if (valueFlag == Instructions::RegisterAhead)
@@ -208,6 +260,10 @@ int VirtualMachine::start_program()
             else if (valueFlag == Instructions::MemorySpotAhead)
             {
                 TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
                 value = this->HEAP[address];
             }
             else if (valueFlag == Instructions::RegisterAhead)
@@ -230,6 +286,10 @@ int VirtualMachine::start_program()
             else if (valueFlag == Instructions::MemorySpotAhead)
             {
                 TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
                 value = this->HEAP[address];
             }
             else if (valueFlag == Instructions::RegisterAhead)
@@ -252,6 +312,10 @@ int VirtualMachine::start_program()
             else if (valueFlag == Instructions::MemorySpotAhead)
             {
                 TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
                 value = this->HEAP[address];
             }
             else if (valueFlag == Instructions::RegisterAhead)
@@ -286,6 +350,10 @@ int VirtualMachine::start_program()
             else if (valueFlag == Instructions::MemorySpotAhead)
             {
                 TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
                 value = this->HEAP[address];
             }
             else if (valueFlag == Instructions::RegisterAhead)
@@ -295,60 +363,100 @@ int VirtualMachine::start_program()
 
             TypeMacros::u8 offset = this->read8();
 
-            if (this->SP + offset >= STACK_SIZE)
+            if (this->SP_OFFSET + offset >= STACK_SIZE)
                 return VMErrors::STACK_OVERFLOW;
 
             switch (offset)
             {
             case 1:
-                this->STACK[this->SP] = static_cast<TypeMacros::u8>(value) & 0xFF;
+                this->STACK[this->SP_OFFSET] = static_cast<TypeMacros::u8>(value) & 0xFF;
                 break;
 
             case 2:
-                this->STACK[this->SP] = static_cast<TypeMacros::u8>(value >> 8);
-                this->STACK[this->SP + 1] = static_cast<TypeMacros::u8>(value) & 0xFF;
+                this->STACK[this->SP_OFFSET] = static_cast<TypeMacros::u8>(value >> 8);
+                this->STACK[this->SP_OFFSET + 1] = static_cast<TypeMacros::u8>(value) & 0xFF;
                 break;
 
             case 4:
-                this->STACK[this->SP] = static_cast<TypeMacros::u8>(value >> 24);
-                this->STACK[this->SP + 1] = static_cast<TypeMacros::u8>(value >> 16);
-                this->STACK[this->SP + 2] = static_cast<TypeMacros::u8>(value >> 8);
-                this->STACK[this->SP + 3] = static_cast<TypeMacros::u8>(value) & 0xFF;
+                this->STACK[this->SP_OFFSET] = static_cast<TypeMacros::u8>(value >> 24);
+                this->STACK[this->SP_OFFSET + 1] = static_cast<TypeMacros::u8>(value >> 16);
+                this->STACK[this->SP_OFFSET + 2] = static_cast<TypeMacros::u8>(value >> 8);
+                this->STACK[this->SP_OFFSET + 3] = static_cast<TypeMacros::u8>(value) & 0xFF;
                 break;
 
             default:
                 return VMErrors::INVALID_STACK_OFFSET;
             }
 
+            this->SP_OFFSET += offset;
             this->SP += offset;
         }
         else if (this->IR == Instructions::pop)
         {
             TypeMacros::u8 offset = this->read8();
 
-            if (this->SP - offset < 0)
+            if (this->SP_OFFSET - offset < 0)
                 return VMErrors::STACK_UNDERFLOW;
 
             switch (offset)
             {
             case 1:
-                this->ACC = static_cast<TypeMacros::i32>(this->STACK[this->SP - 1]) & 0xFF;
+                this->ACC = static_cast<TypeMacros::i32>(this->STACK[this->SP_OFFSET - 1]) & 0xFF;
                 break;
 
             case 2:
-                this->ACC = (static_cast<TypeMacros::i32>(this->STACK[this->SP - 1]) & 0xFF) |
-                            (static_cast<TypeMacros::i32>(this->STACK[this->SP - 2]) << 8);
+                this->ACC = (static_cast<TypeMacros::i32>(this->STACK[this->SP_OFFSET - 1]) & 0xFF) |
+                            (static_cast<TypeMacros::i32>(this->STACK[this->SP_OFFSET - 2]) << 8);
                 break;
 
             case 4:
-                this->ACC = (static_cast<TypeMacros::i32>(this->STACK[this->SP - 1]) & 0xFF) |
-                            (static_cast<TypeMacros::i32>(this->STACK[this->SP - 2]) << 8)   |
-                            (static_cast<TypeMacros::i32>(this->STACK[this->SP - 3]) << 16)  |
-                            (static_cast<TypeMacros::i32>(this->STACK[this->SP - 4]) << 24);
+                this->ACC = (static_cast<TypeMacros::i32>(this->STACK[this->SP_OFFSET - 1]) & 0xFF) |
+                            (static_cast<TypeMacros::i32>(this->STACK[this->SP_OFFSET - 2]) << 8)   |
+                            (static_cast<TypeMacros::i32>(this->STACK[this->SP_OFFSET - 3]) << 16)  |
+                            (static_cast<TypeMacros::i32>(this->STACK[this->SP_OFFSET - 4]) << 24);
                 break;
 
             default:
                 return VMErrors::INVALID_STACK_OFFSET;
+            }
+
+            this->SP_OFFSET -= offset;
+            this->SP -= offset;
+        }
+        else if (this->IR == Instructions::vinc)
+        {
+            TypeMacros::u8 containerFlag = this->PROGRAM[PC++];
+            if (containerFlag == Instructions::RegisterAhead)
+            {
+                TypeMacros::u8 r = this->PROGRAM[this->PC++];
+                delta_add_register(*this, r, 1, 1.0f);
+            }
+            else if (containerFlag == Instructions::MemorySpotAhead)
+            {
+                TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
+                this->HEAP[address]++;
+            }
+        }
+        else if (this->IR == Instructions::vdec)
+        {
+            TypeMacros::u8 containerFlag = this->PROGRAM[PC++];
+            if (containerFlag == Instructions::RegisterAhead)
+            {
+                TypeMacros::u8 r = this->PROGRAM[this->PC++];
+                delta_add_register(*this, r, -1, -1.0f);
+            }
+            else if (containerFlag == Instructions::MemorySpotAhead)
+            {
+                TypeMacros::u32 address = this->read32();
+
+                if (address >= this->heapSize)
+                    return VMErrors::INVALID_HEAP_ADDRESS;
+
+                this->HEAP[address]--;
             }
         }
         else
@@ -359,6 +467,12 @@ int VirtualMachine::start_program()
     }
 
     return VMErrors::PASS;
+}
+
+void VirtualMachine::clear_heap()
+{
+    if (this->allocator != nullptr)
+        this->allocator->destroy(this->HEAP);
 }
 
 void VirtualMachine::register_dump()
@@ -393,9 +507,9 @@ void VirtualMachine::register_dump()
     len = snprintf(text, 256, "SP: %d\n", this->SP);
     stream->write(reinterpret_cast<const TypeMacros::u8*>(text), len);
 
-    for (TypeMacros::u32 i = 0; i < 64UL && i < STACK_SIZE; i++)
+    for (TypeMacros::u32 i = 0; i < __min(64UL, STACK_SIZE); i++)
     {
-        len = snprintf(text, 256, "STACK[%u]: %u", i, this->STACK[i]);
+        len = snprintf(text, 256, "STACK[%u]: %u\n", i, this->STACK[i]);
         stream->write(reinterpret_cast<const TypeMacros::u8*>(text), len);
     }
 }

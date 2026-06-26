@@ -52,6 +52,20 @@ EmbediString::EmbediString(const char* _data, EmbediAllocator* _allocator)
     this->allocator = _allocator;
     const TypeMacros::u32 strsize = strlen(_data);
 
+    if (strsize == 0)
+    {
+        this->data = static_cast<char*>(this->allocator->alloc(1));
+        if (this->data == nullptr)
+        {
+            SystemIO::perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
+            return;
+        }
+
+        this->data[0] = '\0';
+        this->capacity = 1;
+        return;
+    }
+
     this->data = static_cast<char*>(this->allocator->alloc(strsize));
     if (this->data == nullptr)
     {

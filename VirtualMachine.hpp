@@ -1,34 +1,16 @@
 #ifndef __EMBEDI_VIRTUAL_MACHINE_HPP__
 #define __EMBEDI_VIRTUAL_MACHINE_HPP__
 
+#include "Allocator.hpp"
 #include "TypeMacros.hpp"
 #include "IOStreams.hpp"
 
-/*
-Supported Operations:
-
-1) mov <register> <number / pointer>
-2) add <gpr1> <gpr2> -> <accumulator>
-3) sub <gpr1> <gpr2> -> <accumulator>
-4) div <gpr1> <gpr2> -> <accumulator>
-5) mul <gpr1> <gpr2> -> <accumulator>
-6) mod <gpr1> <gpr2> -> <accumulator>
-*/
-
 constexpr TypeMacros::u32 STACK_SIZE = Kb(1);
-constexpr TypeMacros::u32 PROGRAM_SIZE = Kb(1);
 
 constexpr TypeMacros::u8 INTEGER_REGISTER_SPACE = 16;
 constexpr TypeMacros::u8 FLOAT_REGISTER_SPACE = 16;
 constexpr TypeMacros::u8 INTEGER_OFFSET = 1;
 constexpr TypeMacros::u8 FLOAT_OFFSET = 20;
-
-// New instructions to add
-// write <address> <value>
-// hext <size>
-// hshr <size>
-// inc <container>
-// dec <container>
 
 namespace Instructions
 {
@@ -53,6 +35,12 @@ namespace Instructions
     constexpr TypeMacros::u8 pop      = 18;
     constexpr TypeMacros::u8 syscall  = 19;
     constexpr TypeMacros::u8 halt     = 20;
+    constexpr TypeMacros::u8 vxor     = 21;
+    constexpr TypeMacros::u8 vinc     = 22;
+    constexpr TypeMacros::u8 vdec     = 23;
+    // heap extend instruction
+    // write memory instruction
+    // read memory instruction
 
     constexpr TypeMacros::u8 RegisterAhead         = 0;
     constexpr TypeMacros::u8 MemorySpotAhead       = 1;
@@ -74,6 +62,7 @@ namespace VMErrors
     constexpr int INVALID_STACK_OFFSET = -1223;
     constexpr int STACK_OVERFLOW = -2901;
     constexpr int STACK_UNDERFLOW = -1297;
+    constexpr int INVALID_HEAP_ADDRESS =-12974;
 };
 
 struct VirtualMachine
@@ -110,13 +99,15 @@ struct VirtualMachine
     TypeMacros::u8 STACK[STACK_SIZE];
 
     // Stack Pointer
-    TypeMacros::u32 SP = 0;
+    TypeMacros::u8* SP = STACK;
 
-    // Base Pointer to a stack frame
-    TypeMacros::u8 BP = 0;
+    // Stack offset, for bounds checking
+    TypeMacros::u32 SP_OFFSET = 0;
 
     // Random Access Memory Block
     TypeMacros::u8* HEAP = nullptr;
+    TypeMacros::u32 heapSize = 0;
+    EmbediAllocator* allocator = nullptr;
 
     // Debuggers
     bool errorFlag = false;
@@ -134,12 +125,24 @@ struct VirtualMachine
     TypeMacros::u32 read32()
     { return static_cast<TypeMacros::u32>(read16()) << 16 | static_cast<TypeMacros::u32>(read16()); }
 
-    // This function resets the state of virtual machine
+    // Setups the Input and Output streams provided by the user
+    // And uses them in the write and read operations of the VM
     void load_streams(EmbediFileStream* out, EmbediFileStream* in);
-    void load_program(TypeMacros::u8* _program, TypeMacros::u32 _progSize, TypeMacros::u8* memoryChunk);
 
+    // Resets the state of the Virtual Machine and Loads the program in the VM
+    void load_program(TypeMacros::u8* _program, TypeMacros::u32 _progSize, EmbediAllocator* _allocator);
+
+    // Starts the processing and execution of the program
+    // All the Return codes are stored in VMErrors Namespace
+    // If result is not 0 or 1 (RETURN UPON HALT INSTRUCTION)
+    // Then you may check the error code with VMErrors
+    // warning: call clear_heap() after this function, to free all the ram allocated by this instance
     int start_program();
 
+    // Clears all the heap memory allocated by the VM's allocator
+    void clear_heap();
+
+    // Dumps the content of the registers, in the SYSOUT stream
     void register_dump();
 };
 

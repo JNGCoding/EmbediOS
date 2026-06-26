@@ -125,6 +125,9 @@ namespace SystemIO {
     TypeMacros::u8 fgetc(const char* streamName);
     TypeMacros::u8 fgetc(EmbediFileStream* stream);
 
+    TypeMacros::u32 favailable(const char* streamName);
+    TypeMacros::u32 favailable(EmbediFileStream* stream);
+
     void fputc(const char* streamName, const TypeMacros::u8 c);
     void fputc(EmbediFileStream* stream, const TypeMacros::u8 c);
 
@@ -141,6 +144,8 @@ namespace SystemIO {
     TypeMacros::u32 fgets(EmbediFileStream* stream, char* buffer, TypeMacros::u32 capSize);
 
     TypeMacros::u8 getchar();
+
+    TypeMacros::u32 available();
 
     TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize);
     TypeMacros::u32 printf(const char* format, ...);

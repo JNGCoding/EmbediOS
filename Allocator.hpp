@@ -74,11 +74,9 @@ private:
     TypeMacros::u8* buffer    = nullptr;
     TypeMacros::u32 sp        = 0;
     const TypeMacros::u32 cap = 0;
-    bool heapBufferAllocated = false;
 
 public:
     EmbediLinearAllocator(TypeMacros::u8* buf, TypeMacros::u32 cap_size);
-    ~EmbediLinearAllocator();
     TypeMacros::memptr alloc(TypeMacros::u32 size) override;
     bool  destroy(TypeMacros::memptr mem) override;
     TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
@@ -92,11 +90,9 @@ private:
     const TypeMacros::u32 capacity = 0;
     TypeMacros::u32 objects = 0;
     TypeMacros::u8* buffer = nullptr;
-    bool heapBufferAllocated = false;
 
 public:
     EmbediRandomAccessMemoryAllocator(TypeMacros::u8* buf, const TypeMacros::u32 cap_size);
-    ~EmbediRandomAccessMemoryAllocator();
     TypeMacros::memptr alloc(TypeMacros::u32 size) override;
     bool destroy(TypeMacros::memptr mem) override;
     TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;

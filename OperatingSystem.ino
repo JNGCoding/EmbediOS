@@ -37,6 +37,7 @@ the community can come up with this shitty software.
 
 #include <Arduino.h>
 #include <SdFat.h>
+#include <string.h>
 
 #include "TypeMacros.hpp"
 #include "Allocator.hpp"
@@ -61,17 +62,30 @@ char CLS[MAX_STATEMENT_LENGTH] = {0};
 // Virtual Machine for executing program
 VirtualMachine VM;
 u8 Program[ MAX_PROGRAM_SIZE ] = {0};
-u8 ProgramHEAP[ MAX_HEAP_SIZE ] = {0};
 
 #ifdef COMPILE_WITH_SD_INITIALIZATION
 
 // Current Working Directory
-EmbediString CWD("\\");
+EmbediString CWD("/");
 
 int listdir(int argc, const char* argv[])
 {
     SdFile dir;
-    dir.open(CWD.c_str());
+
+    bool print_size = false;
+
+    for (int i = 0; i < argc; i++)
+    {
+        if (string_equals(argv[0], "-psize"))
+        {
+            print_size = true;
+        }
+    }
+
+    const char* path = CWD.c_str();
+    SystemIO::printf("Printing Contents of %s\n", path);
+
+    dir.open(path);
 
     char nameBuffer[64];
 
@@ -91,7 +105,20 @@ int listdir(int argc, const char* argv[])
             SystemIO::printf("\t<DIR>\n");
         } else {
             SystemIO::printf("\t<FIL>");
-            SystemIO::printf("\t%u bytes\n", file.fileSize());
+
+            if (print_size)
+            {
+                TypeMacros::usize bytes = 0, bytesAvailable = 0;
+                while ((bytesAvailable = file.available()) > 0)
+                {
+                    TypeMacros::usize incrementer = __max(24, bytesAvailable);
+                    bytes += incrementer;
+                    file.seekSet( file.curPosition() + incrementer );
+                }
+
+                SystemIO::printf("\t%u bytes", static_cast<unsigned int>(bytes));
+            }
+            SystemIO::printchar('\n');
         }
 
         file.close();
@@ -126,22 +153,49 @@ int run_program(int argc, const char* argv[])
         Program[ appendIndex++ ] = file.read();
         if (appendIndex >= MAX_PROGRAM_SIZE)
         {
-            SystemIO::printf("Error: program size is greater than %u, exiting...\n", MAX_PROGRAM_SIZE);
+            SystemIO::printf("error: program size is greater than size limit: %u bytes, exiting...\n", MAX_PROGRAM_SIZE);
             return -1;
         }
     }
 
     SystemIO::close_file(&file);
 
-    SystemIO::printf("Program successfully read, program size: %u\n", appendIndex);
+    SystemIO::printf("Program successfully read, program size: %u bytes\n", appendIndex);
 
-    VM.load_program(Program, appendIndex, ProgramHEAP);
+    VM.load_program(Program, appendIndex, &basicAllocator);
     VM.load_streams(&outputStream, &inputStream);
     int rs = VM.start_program();
     VM.register_dump();
 
     SystemIO::printf("Program exited with return code = %d\n", rs);
 
+    return 0;
+}
+
+int print_file(int argc, const char* argv[])
+{
+    if (argc <= 0)
+    {
+        SystemIO::printf("No input file specified, exiting...\n");
+        return -1;
+    }
+
+    SDCardFileStream stream(argv[0], READ);
+    if (!SystemIO::open_file(&stream))
+    {
+        SystemIO::printf("Failed to open file %s\n", argv[0]);
+        return -1;
+    }
+
+    TypeMacros::u8 buffer[256];
+    while (stream.available() > 0)
+    {
+        TypeMacros::u32 bytesRead = stream.read(buffer, 256);
+        outputStream.write(buffer, bytesRead);
+    }
+
+    SystemIO::close_file(&stream);
+    
     return 0;
 }
 
@@ -156,6 +210,8 @@ void setup()
 {
     Serial.begin(115200);
     loadEverything();
+
+    SystemIO::printf("/ : ");
 }
 
 void loop()
@@ -167,6 +223,8 @@ void loop()
     // We are going to trim the '\r\n'
     CLS[bytesRead] = '\0';
 
+    SystemIO::printf("%s\n", CLS);
+
     CommandLine::FunctionPackage* function = CMD.process_statement(CLS);
 
     if (function != nullptr) {
@@ -174,6 +232,8 @@ void loop()
     } else {
         SystemIO::printf("%s is not valid command\n", CLS);
     }
+
+    SystemIO::printf("%s : ", CWD.c_str());
 }
 
 void loadEverything()
@@ -193,11 +253,12 @@ void loadEverything()
     }
     else
     {
-        SystemIO::printf("SUCCESS: INITIALIZED SD CARD AND FAT32 FILE SYSTEMS");
+        SystemIO::printf("SUCCESS: INITIALIZED SD CARD AND FAT32 FILE SYSTEMS\n");
     }
 
     CMD.register_function("listdir", listdir);
     CMD.register_function("start", run_program);
+    CMD.register_function("printfile", print_file);
 
 #endif
 }
