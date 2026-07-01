@@ -392,7 +392,7 @@ namespace SystemIO {
         va_start(args, format);
 
         // Small buffer to store numbers and stuff
-        char smallBuffer[32];
+        char smallBuffer[320];
 
         while (*format != 0)
         {
@@ -414,24 +414,28 @@ namespace SystemIO {
                 else if (*format == 'd')
                 {
                     int iarg = va_arg(args, int);
-                    sprintf(smallBuffer, "%d", iarg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%d", iarg);
                     stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
                 else if (*format == 'u')
                 {
                     unsigned int uarg = va_arg(args, unsigned int);
-                    sprintf(smallBuffer, "%u", uarg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%u", uarg);
                     stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
                 else if (*format == 'f')
                 {
                     double farg = va_arg(args, double);
-                    sprintf(smallBuffer, "%f", farg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%f", farg);
+                    stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                    count += length;
+                }
+                else if (*format == 'l')
+                {
+                    long larg = va_arg(args, long);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%ld", larg);
                     stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
@@ -473,7 +477,7 @@ namespace SystemIO {
         va_start(args, format);
 
         // Small buffer to store numbers and stuff
-        char smallBuffer[32];
+        char smallBuffer[320];
 
         while (*format != 0)
         {
@@ -495,24 +499,28 @@ namespace SystemIO {
                 else if (*format == 'd')
                 {
                     int iarg = va_arg(args, int);
-                    sprintf(smallBuffer, "%d", iarg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%d", iarg);
                     stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
                 else if (*format == 'u')
                 {
                     unsigned int uarg = va_arg(args, unsigned int);
-                    sprintf(smallBuffer, "%u", uarg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%u", uarg);
                     stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
                 else if (*format == 'f')
                 {
                     double farg = va_arg(args, double);
-                    sprintf(smallBuffer, "%f", farg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%f", farg);
+                    stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                    count += length;
+                }
+                else if (*format == 'l')
+                {
+                    long larg = va_arg(args, long);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%ld", larg);
                     stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
@@ -591,7 +599,7 @@ namespace SystemIO {
         va_start(args, format);
 
         // Small buffer to store numbers and stuff
-        char smallBuffer[32];
+        char smallBuffer[320];
 
         while (*format != 0)
         {
@@ -613,24 +621,28 @@ namespace SystemIO {
                 else if (*format == 'd')
                 {
                     int iarg = va_arg(args, int);
-                    sprintf(smallBuffer, "%d", iarg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%d", iarg);
                     SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
                 else if (*format == 'u')
                 {
                     unsigned int uarg = va_arg(args, unsigned int);
-                    sprintf(smallBuffer, "%u", uarg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%u", uarg);
                     SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }
                 else if (*format == 'f')
                 {
                     double farg = va_arg(args, double);
-                    sprintf(smallBuffer, "%f", farg);
-                    const TypeMacros::u32 length = strlen(smallBuffer);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%f", farg);
+                    SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                    count += length;
+                }
+                else if (*format == 'l')
+                {
+                    long larg = va_arg(args, long);
+                    const TypeMacros::u32 length = sprintf(smallBuffer, "%ld", larg);
                     SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                     count += length;
                 }

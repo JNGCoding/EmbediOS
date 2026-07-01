@@ -8,18 +8,12 @@
 #include <string.h>
 
 #ifndef __AVR__
-
-// AVR Compilers doesn't define assert.h headers
-// Currently, they are the only compilers that I know of that don't have assert.h
 #include <assert.h>
-
 #else
-
 #define assert(expr) ((expr) ? (void)0 : abort())
-
 #endif
 
-// A simple pair class
+// A generic pair class
 template<typename T1, typename T2>
 struct EmbediPair
 {
@@ -38,7 +32,7 @@ struct EmbediPair
     }
 };
 
-// A simple singly-linked node
+// A generic singly-linked node
 template<typename T>
 struct SinglyNode
 {
@@ -46,7 +40,7 @@ struct SinglyNode
     SinglyNode<T>* root = nullptr;
 };
 
-// A simple doubly-linked node
+// A generic doubly-linked node
 template<typename T>
 struct DoublyNode
 {
@@ -55,7 +49,7 @@ struct DoublyNode
     T value;
 };
 
-// Generic Dynamically allocated String type
+// Simple Vector-style Dynamically allocated String type
 class EmbediString
 {
 private:
@@ -104,7 +98,7 @@ public:
 
     // Returns the pointer to the character at the index provided
     // `index` index of the character
-    char* get_char(const TypeMacros::u32 index);
+    char get_char(const TypeMacros::u32 index);
 
     // Returns a bool indicating the presence of a substr in the data buffer
     // `substr` the substring sequence to search for
@@ -190,6 +184,10 @@ public:
     // `end` index where the scanning will be end
     void remove(const char oldc, const TypeMacros::u32 start, const TypeMacros::u32 end);
 
+    // Safely alters the value of the length attribute of the instance
+    // `length` the alteration
+    void set_length(const TypeMacros::u32 length);
+
     // Sets the append index to 0
     // All the previously written data is preserved
     void clear();
@@ -201,7 +199,8 @@ public:
     const char* c_str();
 
     // Returns the length of the string
-    TypeMacros::u32 length() const;
+    TypeMacros::u32 length() const
+    { return this->len; }
 
     // Returns true if both strings are equal else false
     bool equals(const EmbediString& other);
@@ -1129,12 +1128,19 @@ inline TypeMacros::usize EMBEDI_GENERIC_HASH_FUNCTION<TypeMacros::memptr>(TypeMa
 template<typename K, typename V>
 class EmbediHashTable
 {
+public:
+    using ComparetorFunction = bool(*)(K v1, K v2);
+    constexpr static bool defaultCF(K v1, K v2) {
+        return v1 == v2;
+    }
+
 private:
     using Entry = EmbediPair<K, V>;
     EmbediList<Entry>* buckets = nullptr;
     const TypeMacros::u32 numBuckets;
     TypeMacros::u32 count = 0;
     EmbediAllocator* allocator = nullptr;
+    ComparetorFunction equals = EmbediHashTable::defaultCF;
 
 public:
     constexpr static TypeMacros::u32 DEFAULT_NUM_BUCKETS = 10;
@@ -1244,7 +1250,10 @@ public:
         TypeMacros::u32 i = 0;
         while (start->head != nullptr)
         {
-            if (start->value.a == key)
+            // if (start->value.a == key)
+            //     return &start->value.b;
+
+            if (this->equals(start->value.a, key))
                 return &start->value.b;
         }
 
@@ -1263,7 +1272,10 @@ public:
         TypeMacros::u32 i = 0;
         while (start->head != nullptr)
         {
-            if (start->value.a == key)
+            // if (start->value.a == key)
+            //     return &start->value;
+
+            if (this->equals(start->value.a, key))
                 return &start->value;
         }
 
@@ -1274,6 +1286,12 @@ public:
     TypeMacros::u32 size() const
     {
         return this->count;
+    }
+
+    // Set the comparetor function
+    void setCF(ComparetorFunction func) const
+    {
+        this->equals = func;
     }
 
     // Removes all the element from all the buckets in the hash table

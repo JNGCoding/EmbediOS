@@ -43,28 +43,12 @@ inline bool is_space(const char ch) {
     return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0';
 }
 
-static int echo(int argc, const char* argv[])
-{
-    for (int i = 0; i < argc; i++)
-        SystemIO::printf("%s ", argv[i]);
-
-    SystemIO::printf("\n");
-    SystemIO::flush();
-    
-    return 0;
-}
-
 struct CommandLine
 {
     using CLFunction = int(*)(int argc, const char* argv[]);
 
     EmbediPair<const char*, CLFunction> functions[MAX_FUNCTIONS];
     TypeMacros::u32 appIndex = 0;
-
-    CommandLine()
-    {
-        this->register_function("echo", echo);
-    }
 
     bool register_function(const char* name, CLFunction func)
     {

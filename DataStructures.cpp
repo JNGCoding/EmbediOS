@@ -66,35 +66,36 @@ EmbediString::EmbediString(const char* _data, EmbediAllocator* _allocator)
         return;
     }
 
-    this->data = static_cast<char*>(this->allocator->alloc(strsize));
+    this->data = static_cast<char*>(this->allocator->alloc(strsize + 1));
     if (this->data == nullptr)
     {
         SystemIO::perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
         return;
     }
 
-    this->capacity = strsize;
+    this->capacity = strsize + 1;
     this->len = strsize;
 
     memcpy(this->data, _data, this->len * sizeof(char));
+    this->data[this->len] = '\0';
 }
 
 EmbediString::EmbediString(const EmbediString& str, EmbediAllocator* _allocator)
 {
     this->allocator = (_allocator == nullptr) ? str.allocator : _allocator;
 
-    this->data = static_cast<char*>(this->allocator->alloc(str.len));
+    this->data = static_cast<char*>(this->allocator->alloc(str.len + 1));
     if (this->data == nullptr)
     {
         SystemIO::perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
         return;
     }
 
-    // preferred just in case the object is not mutated and is short lived
-    this->capacity = str.len;
+    this->capacity = str.len + 1;
     this->len = str.len;
 
-    memcpy(this->data, str.data, this->len);
+    memcpy(this->data, str.data, this->len * sizeof(char));
+    this->data[this->len] = '\0';
 }
 
 EmbediString::~EmbediString()
@@ -168,12 +169,12 @@ bool EmbediString::get_substring(EmbediString& buffer, const TypeMacros::u32 sta
     return buffer.append(*this, start, end);
 }
 
-char* EmbediString::get_char(const TypeMacros::u32 index)
+char EmbediString::get_char(const TypeMacros::u32 index)
 {
     if (index >= this->len)
-        return nullptr;
+        return '\0';
 
-    return &this->data[index];
+    return this->data[index];
 }
 
 bool EmbediString::contains(const char* substr)
@@ -192,12 +193,12 @@ bool EmbediString::is_blank()
 
     for (size_t i = 0; i < this->len; i++) {
         if (
-            this->data[i] != ' '  ||
-            this->data[i] != '\n' ||
-            this->data[i] != '\v' ||
-            this->data[i] != '\b' ||
-            this->data[i] != '\f' ||
-            this->data[i] != '\t'
+            this->data[i] == ' '  ||
+            this->data[i] == '\n' ||
+            this->data[i] == '\v' ||
+            this->data[i] == '\b' ||
+            this->data[i] == '\f' ||
+            this->data[i] == '\t'
         ) {
             return false;
         }
@@ -250,9 +251,12 @@ bool EmbediString::append(const char* str)
     if (str == nullptr) return false;
 
     const TypeMacros::u32 strsize = strlen(str);
-    if (this->len + strsize >= this->capacity)
+    TypeMacros::u32 required = this->len + strsize + 1;
+    if (required > this->capacity)
     {
-        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+        TypeMacros::u32 ncap = this->capacity;
+        while (ncap < required)
+            ncap = static_cast<TypeMacros::u32>(ncap * EmbediString::MULTIPLY_FACTOR);
 
         void* space = this->allocator->reshape(this->data, ncap);
         if (space == nullptr)
@@ -264,6 +268,7 @@ bool EmbediString::append(const char* str)
 
     memcpy(this->data + this->len, str, strsize);
     this->len += strsize;
+    this->data[this->len] = '\0';
 
     return true;
 }
@@ -273,11 +278,16 @@ bool EmbediString::append(const char* str, const TypeMacros::u32 start)
     if (str == nullptr) return false;
 
     const TypeMacros::u32 strlength = strlen(str);
-    const TypeMacros::u32 strsize = (start >= strlength) ? strlength : strlength - start;
+    if (start >= strlength)
+        return true;
 
-    if (this->len + strsize >= this->capacity)
+    const TypeMacros::u32 strsize = strlength - start;
+    TypeMacros::u32 required = this->len + strsize + 1;
+    if (required > this->capacity)
     {
-        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+        TypeMacros::u32 ncap = this->capacity;
+        while (ncap < required)
+            ncap = static_cast<TypeMacros::u32>(ncap * EmbediString::MULTIPLY_FACTOR);
 
         void* space = this->allocator->reshape(this->data, ncap);
         if (space == nullptr)
@@ -289,6 +299,7 @@ bool EmbediString::append(const char* str, const TypeMacros::u32 start)
 
     memcpy(this->data + this->len, str + start, strsize);
     this->len += strsize;
+    this->data[this->len] = '\0';
 
     return true;
 }
@@ -298,26 +309,31 @@ bool EmbediString::append(const char* str, const TypeMacros::u32 start, const Ty
     if (str == nullptr) return false;
 
     const TypeMacros::u32 strlength = strlen(str);
-
-    TypeMacros::u32 s, e;
-    if (start > end)
+    TypeMacros::u32 s = start;
+    TypeMacros::u32 e = end;
+    if (s > e)
     {
-        s = end;
-        e = start;
-    }
-    else
-    {
-        s = start;
-        e = end;
+        TypeMacros::u32 t = s;
+        s = e;
+        e = t;
     }
 
-    const TypeMacros::u32 strsize = e - s;
-    if (strsize > strlength)
+    if (s >= strlength)
+        return true;
+
+    if (e > strlength)
         e = strlength;
 
-    if (this->len + strsize >= this->capacity)
+    const TypeMacros::u32 strsize = (e > s) ? (e - s) : 0;
+    if (strsize == 0)
+        return true;
+
+    TypeMacros::u32 required = this->len + strsize + 1;
+    if (required > this->capacity)
     {
-        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+        TypeMacros::u32 ncap = this->capacity;
+        while (ncap < required)
+            ncap = static_cast<TypeMacros::u32>(ncap * EmbediString::MULTIPLY_FACTOR);
 
         void* space = this->allocator->reshape(this->data, ncap);
         if (space == nullptr)
@@ -327,8 +343,9 @@ bool EmbediString::append(const char* str, const TypeMacros::u32 start, const Ty
         this->capacity = ncap;
     }
 
-    memcpy(this->data + this->len, str + start, strsize);
+    memcpy(this->data + this->len, str + s, strsize);
     this->len += strsize;
+    this->data[this->len] = '\0';
 
     return true;
 }
@@ -336,9 +353,12 @@ bool EmbediString::append(const char* str, const TypeMacros::u32 start, const Ty
 bool EmbediString::append(const EmbediString& str)
 {
     const TypeMacros::u32 strsize = str.len;
-    if (this->len + strsize >= this->capacity)
+    TypeMacros::u32 required = this->len + strsize + 1;
+    if (required > this->capacity)
     {
-        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+        TypeMacros::u32 ncap = this->capacity;
+        while (ncap < required)
+            ncap = static_cast<TypeMacros::u32>(ncap * EmbediString::MULTIPLY_FACTOR);
 
         void* space = this->allocator->reshape(this->data, ncap);
         if (space == nullptr)
@@ -350,6 +370,7 @@ bool EmbediString::append(const EmbediString& str)
 
     memcpy(this->data + this->len, str.data, strsize);
     this->len += strsize;
+    this->data[this->len] = '\0';
 
     return true;
 }
@@ -357,11 +378,16 @@ bool EmbediString::append(const EmbediString& str)
 bool EmbediString::append(const EmbediString& str, const TypeMacros::u32 start)
 {
     const TypeMacros::u32 strlength = str.len;
-    const TypeMacros::u32 strsize = (start >= strlength) ? strlength : strlength - start;
+    if (start >= strlength)
+        return true;
 
-    if (this->len + strsize >= this->capacity)
+    const TypeMacros::u32 strsize = strlength - start;
+    TypeMacros::u32 required = this->len + strsize + 1;
+    if (required > this->capacity)
     {
-        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+        TypeMacros::u32 ncap = this->capacity;
+        while (ncap < required)
+            ncap = static_cast<TypeMacros::u32>(ncap * EmbediString::MULTIPLY_FACTOR);
 
         void* space = this->allocator->reshape(this->data, ncap);
         if (space == nullptr)
@@ -373,6 +399,7 @@ bool EmbediString::append(const EmbediString& str, const TypeMacros::u32 start)
 
     memcpy(this->data + this->len, str.data + start, strsize);
     this->len += strsize;
+    this->data[this->len] = '\0';
 
     return true;
 }
@@ -380,26 +407,31 @@ bool EmbediString::append(const EmbediString& str, const TypeMacros::u32 start)
 bool EmbediString::append(const EmbediString& str, const TypeMacros::u32 start, const TypeMacros::u32 end)
 {
     const TypeMacros::u32 strlength = str.len;
-
-    TypeMacros::u32 s, e;
-    if (start > end)
+    TypeMacros::u32 s = start;
+    TypeMacros::u32 e = end;
+    if (s > e)
     {
-        s = end;
-        e = start;
-    }
-    else
-    {
-        s = start;
-        e = end;
+        TypeMacros::u32 tmp = s;
+        s = e;
+        e = tmp;
     }
 
-    const TypeMacros::u32 strsize = e - s;
-    if (strsize > strlength)
+    if (s >= strlength)
+        return true;
+
+    if (e > strlength)
         e = strlength;
 
-    if (this->len + strsize >= this->capacity)
+    const TypeMacros::u32 strsize = (e > s) ? (e - s) : 0;
+    if (strsize == 0)
+        return true;
+
+    TypeMacros::u32 required = this->len + strsize + 1;
+    if (required > this->capacity)
     {
-        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+        TypeMacros::u32 ncap = this->capacity;
+        while (ncap < required)
+            ncap = static_cast<TypeMacros::u32>(ncap * EmbediString::MULTIPLY_FACTOR);
 
         void* space = this->allocator->reshape(this->data, ncap);
         if (space == nullptr)
@@ -409,8 +441,9 @@ bool EmbediString::append(const EmbediString& str, const TypeMacros::u32 start, 
         this->capacity = ncap;
     }
 
-    memcpy(this->data + this->len, str.data + start, strsize);
+    memcpy(this->data + this->len, str.data + s, strsize);
     this->len += strsize;
+    this->data[this->len] = '\0';
 
     return true;
 }
@@ -418,18 +451,21 @@ bool EmbediString::append(const EmbediString& str, const TypeMacros::u32 start, 
 void EmbediString::clear()
 {
     this->len = 0;
+    if (this->data != nullptr)
+        this->data[0] = '\0';
 }
 
 void EmbediString::shrink_to_size()
 {
-    if (this->capacity == this->len)
+    if (this->capacity == this->len + 1)
         return;
 
-    char* space = static_cast<char*>(this->allocator->reshape(this->data, this->len * sizeof(char)));
+    char* space = static_cast<char*>(this->allocator->reshape(this->data, (this->len + 1) * sizeof(char)));
     if (space == nullptr)
         return;
 
     this->data = space;
+    this->capacity = this->len + 1;
 }
 
 void EmbediString::replace(const char oldc, const char newc)
@@ -452,7 +488,7 @@ void EmbediString::replace(const char oldc, const char newc, const TypeMacros::u
     for (TypeMacros::u32 i = start; i < __min(end, this->len); i++)
     {
         if (this->data[i] == oldc)
-            this->data[i] == newc;
+            this->data[i] = newc;
     }
 }
 
@@ -494,24 +530,40 @@ void EmbediString::remove(const char oldc, const TypeMacros::u32 start, const Ty
 
 const char* EmbediString::c_str()
 {
-    if (this->len == this->capacity)
+    if (this->data == nullptr)
+        return "[EmbediString::c_str()] -> null";
+
+    if (this->len >= this->capacity)
     {
-        TypeMacros::u32 ncap = this->capacity * EmbediString::MULTIPLY_FACTOR;
+        TypeMacros::u32 ncap = this->capacity;
+        if (ncap == 0)
+            ncap = 1;
+
+        while (ncap <= this->len)
+            ncap = static_cast<TypeMacros::u32>(ncap * EmbediString::MULTIPLY_FACTOR);
 
         void* space = this->allocator->reshape(this->data, ncap);
         if (space == nullptr)
             return "[EmbediString::c_str()] -> null";
 
+        this->data = static_cast<char*>(space);
         this->capacity = ncap;
     }
 
-    this->data[this->len] = '\0';
+    if (this->data[this->len] != '\0')
+        this->data[this->len] = '\0';
+
     return this->data;
 }
 
-TypeMacros::u32 EmbediString::length() const
+void EmbediString::set_length(const TypeMacros::u32 length)
 {
-    return this->len;
+    if (length >= this->len)
+        return;
+
+    this->len = length;
+    if (this->data != nullptr && this->len < this->capacity)
+        this->data[this->len] = '\0';
 }
 
 bool EmbediString::equals(const EmbediString& other)

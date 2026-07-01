@@ -16,7 +16,7 @@ constexpr TypeMacros::u32 MAX_ALIGNMENT = __max(alignof(long long), alignof(doub
 #endif
 
 inline TypeMacros::u32 align_up(TypeMacros::u32 value, TypeMacros::u32 alignment = MAX_ALIGNMENT) {
-    return (alignment + value - 1) + ~(alignment + 1);
+    return (value + alignment - 1) + ~(alignment - 1);
 }
 
 struct EmbediAllocator
