@@ -85,6 +85,19 @@ TypeMacros::u32 StandardInput::read(TypeMacros::u8* buffer, TypeMacros::u32 size
 TypeMacros::u32 StandardInput::available()
 { return Serial.available(); }
 
+bool StandardError::write(const TypeMacros::u8 _byte)
+{
+    error_terminal.print_char(static_cast<char>(_byte), true);
+    return true;
+}
+
+TypeMacros::u32 StandardError::write(const TypeMacros::u8* _data, TypeMacros::u32 size)
+{
+    error_terminal.print(reinterpret_cast<const char*>(_data), true);
+    return size;
+}
+
+
 // SDCard File Stream implementation
 
 // This implementation just provides a String view of the original string

@@ -38,6 +38,7 @@ the community can come up with this shitty software.
 #include <Arduino.h>
 #include <SdFat.h>
 #include <string.h>
+#include <GyverOLED.h>
 
 #include "TypeMacros.hpp"
 #include "Allocator.hpp"
@@ -52,6 +53,9 @@ the community can come up with this shitty software.
 #define MACHINE_RESET_FUNC() ESP.restart()
 
 using namespace TypeMacros;
+
+GyverOLED<SSH1106_128x64> error_display;
+OLEDTerminal<SSH1106_128x64> error_terminal(error_display);
 
 StandardOutput outputStream;
 StandardInput inputStream;
@@ -68,7 +72,7 @@ char CLS[MAX_STATEMENT_LENGTH] = {0};
 
 // Virtual Machine for executing program
 VirtualMachineV2 VM;
-u8 Program[ MAX_PROGRAM_SIZE ] = {0};
+u8 Program[MAX_PROGRAM_SIZE] = {0};
 
 int reset_machine(int argc, const char* argv[])
 {
@@ -91,6 +95,19 @@ int echo(int argc, const char* argv[])
 EmbediString CWD("/");
 
 #ifdef COMPILE_WITH_SD_INITIALIZATION
+
+int notepad(int argc, const char* argv[])
+{
+    if (argc <= 0)
+    {
+        SystemIO::printf("error: no file was specified, exiting...\n");
+        return -1;
+    }
+
+    BadTextEditor editor(argv[0], &basicAllocator);
+
+    return editor.main(argc, argv);
+}
 
 int change_directory(int argc, const char* argv[])
 {
@@ -203,7 +220,7 @@ int listdir(int argc, const char* argv[])
 
 int run_program(int argc, const char* argv[])
 {
-    if (argc == 0)
+    if (argc <= 0)
     {
         SystemIO::printf("error: no file was specified, exiting...\n");
         return -1;
@@ -283,6 +300,13 @@ int print_file(int argc, const char* argv[])
         return -1;
     }
 
+    bool printLineNumbers = false;
+    for (int i = 1; i < argc; i++)
+    {
+        if (string_equals(argv[i], "-printlnum"))
+            printLineNumbers = true;
+    }
+
     TypeMacros::u32 len = CWD.length();
 
     CWD.append(argv[0]);
@@ -298,10 +322,39 @@ int print_file(int argc, const char* argv[])
     CWD.set_length(len);
 
     TypeMacros::u8 buffer[256];
+
+    unsigned int lineNumber = 1;
+    bool isAtStartOfLine = true;
+
     while (stream.available() > 0)
     {
-        TypeMacros::u32 bytesRead = stream.read(buffer, 256);
-        outputStream.write(buffer, bytesRead);
+        TypeMacros::u32 bytesRead = stream.read(buffer, 255);
+        buffer[bytesRead] = 0;
+
+        if (printLineNumbers)
+        {
+            TypeMacros::u32 chunkStart = 0;
+            for (TypeMacros::u32 i = 0; i < bytesRead; i++)
+            {
+                if (isAtStartOfLine)
+                {
+                    SystemIO::fprintf(&outputStream, "%u  ");
+                    lineNumber++;
+                    isAtStartOfLine = false;
+                    chunkStart = i;
+                }
+
+                if (buffer[i] == '\n')
+                {
+                    outputStream.write(&buffer[chunkStart], (i - chunkStart) + 1);
+                    isAtStartOfLine = true;
+                }
+            }
+
+            if (!isAtStartOfLine && chunkStart < bytesRead)
+                outputStream.write(&buffer[chunkStart], bytesRead - chunkStart);
+        }
+        else outputStream.write(buffer, bytesRead);
     }
 
     SystemIO::close_file(&stream);
@@ -433,6 +486,15 @@ int log_free_mem(int argc, const char* argv[])
     return 0;
 }
 
+int write_in_stderr(int argc, const char* argv[])
+{
+    if (argc <= 0)
+        return -1;
+
+    SystemIO::perror(argv[0]);
+    return 0;
+}
+
 #endif
 
 CommandLine CMD;
@@ -471,6 +533,11 @@ void loop()
 
 void loadEverything()
 {
+    error_display.init();
+    error_display.clear();
+    error_display.home();
+    error_display.update();
+
     // Load the default streams
     allFiles.push(&outputStream);
     allFiles.push(&inputStream);
@@ -499,12 +566,14 @@ void loadEverything()
     CMD.register_function("rmdir", rmdir);
     CMD.register_function("create", create);
     CMD.register_function("delete", del);
+    CMD.register_function("editor", notepad);
 
 #endif
 
 #ifdef INCLUDE_DEBUG_FUNCTIONS
 
     CMD.register_function("freemem", log_free_mem);
+    CMD.register_function("errwrite", write_in_stderr);
 
 #endif
 

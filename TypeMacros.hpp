@@ -21,6 +21,8 @@ namespace TypeMacros
 
     using memptr = void*;
     using uintptr = uintptr_t;
+
+    using cstr = char*;
 };
 
 constexpr TypeMacros::u32 Kb(double x) { return x * 1024; }

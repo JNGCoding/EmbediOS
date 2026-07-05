@@ -27,7 +27,7 @@ constexpr TypeMacros::u32 STARTING_HEAP_SIZE = 512;
 // SD Card initialization
 #define COMPILE_WITH_SD_INITIALIZATION
 #ifndef COMPILE_WITH_SD_INITIALIZATION
-#warning Compiling without SDCard initializations, Functions removed: lsdir, cd, start, dumpf, mkdir, rmdir, create, delete
+#warning Compiling without SDCard initializations, Functions removed: lsdir, cd, start, dumpf, mkdir, rmdir, create, delete, editor
 #endif
 
 // Debug Functions

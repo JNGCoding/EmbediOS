@@ -37,10 +37,11 @@ namespace Instructions
     constexpr TypeMacros::u8 vxor     = 21;
     constexpr TypeMacros::u8 vinc     = 22;
     constexpr TypeMacros::u8 vdec     = 23;
-
-    constexpr TypeMacros::u8 hextend  = 24;     // heap extend instruction
-    constexpr TypeMacros::u8 write    = 25;     // write memory instruction
-    constexpr TypeMacros::u8 read     = 26;     // read memory instruction
+    constexpr TypeMacros::u8 hextend  = 24;
+    constexpr TypeMacros::u8 write    = 25;
+    constexpr TypeMacros::u8 read     = 26;
+    constexpr TypeMacros::u8 uwrite   = 27;
+    constexpr TypeMacros::u8 uread    = 28;
 
     constexpr TypeMacros::u8 RegisterAhead         = 0;
     constexpr TypeMacros::u8 MemorySpotAhead       = 1;
@@ -70,10 +71,9 @@ namespace VMErrors
     constexpr int ALLOCATOR_NOT_DEFINED   = -7;
     constexpr int ALLOCATION_FAILED       = -8;
     constexpr int INVALID_MEMORY_ADDRESS  = -9;
-    constexpr int DIRECT_SP_CHANGE        = -10;
-    constexpr int DIRECT_HP_CHANGE        = -11;
-    constexpr int INVALID_HEAP_OFFSET     = -12;
-    constexpr int FEATURE_NOT_IMPLEMENTED = -13;
+    constexpr int UNSAFE_MODE_NOT_ENABLED = -10;
+    constexpr int INVALID_HEAP_OFFSET     = -11;
+    constexpr int FEATURE_NOT_IMPLEMENTED = -12;
 };
 
 // VMWord depends on the architecture of the machine, since I am using ESP32 which follows a 32-bit architecture

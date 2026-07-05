@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <SdFat.h>
 #include <string.h>
+#include <GyverOLED.h>
 #include <stdarg.h>
 #include "TypeMacros.hpp"
 
@@ -83,6 +84,8 @@ struct StandardOutput : public EmbediFileStream
     void flush() override;
 };
 
+extern StandardOutput outputStream;
+
 struct StandardInput : public EmbediFileStream
 {
     StandardInput() { this->descriptor = {SYSIN_NAME, "", READ }; }
@@ -92,10 +95,163 @@ struct StandardInput : public EmbediFileStream
     TypeMacros::u32 available() override;
 };
 
-struct StandardError : public EmbediFileStream
+extern StandardInput inputStream;
+
+// Using an oled display to display error logs
+// To maximize control over components, it is encouraged to use composition instead
+#undef OLED_WIDTH
+template<int _TYPE, int _BUFF = OLED_BUFFER, int _CONN = OLED_I2C, int8_t _CS = -1, int8_t _DC = -1, int8_t _RST = -1>
+class OLEDTerminal
 {
-    StandardError() { this->descriptor = {SYSERR_NAME, "", READ | WRITE}; }
+private:
+    GyverOLED<_TYPE, _BUFF, _CONN, _CS, _DC, _RST>& display;
+    unsigned int lineIndex = 0;
+    unsigned int charIndex = 0;
+
+    constexpr static int CHARACTER_WIDTH  = 6;
+    constexpr static int CHARACTER_HEIGHT = 8;
+    constexpr static int OLED_WIDTH       = 128;
+    constexpr static int OLED_HEIGHT      = 64;
+    constexpr static int LINE_WIDTH       = OLED_WIDTH / CHARACTER_WIDTH;
+    constexpr static int NUM_LINES        = OLED_HEIGHT / CHARACTER_HEIGHT;
+    constexpr void PUT_AT_INDEX() { this->display.setCursorXY(CHARACTER_WIDTH * this->charIndex, CHARACTER_HEIGHT * this->lineIndex); }
+    constexpr int MAP_X(const int x) { return x * CHARACTER_WIDTH; }
+    constexpr int MAP_Y(const int y) { return y * CHARACTER_HEIGHT; }
+
+    struct line
+    {
+        unsigned int length = 0;
+        char str[LINE_WIDTH + 1] = {0};
+
+        void copy(const line& l)
+        {
+            this->length = l.length;
+            for (unsigned int i = 0; i < this->length; i++)
+                this->str[i] = l.str[i];
+        }
+
+        void clear()
+        {
+            this->str[0] = 0;
+            this->length = 0;
+        }
+    };
+
+    line lines[NUM_LINES] = {0};
+
+public:
+    OLEDTerminal(GyverOLED<_TYPE, _BUFF, _CONN, _CS, _DC, _RST>& oled) : display(oled) {}
+
+    ~OLEDTerminal()
+    {}
+
+    void print_char(const char c, bool update = true)
+    {
+        PUT_AT_INDEX();
+
+        if (c == '\n')
+        {
+            this->lineIndex++;
+            this->charIndex=0;
+            PUT_AT_INDEX();
+        }
+        else
+        {
+            this->lines[this->lineIndex].str[this->charIndex] = c;
+            this->lines[this->lineIndex].length = this->charIndex;
+
+            this->display.write(c);
+
+            this->charIndex++;
+            if (this->charIndex > LINE_WIDTH)
+            {
+                this->lineIndex++;
+                this->charIndex=0;
+
+                if (this->lineIndex >= NUM_LINES)
+                {
+                    this->display.clear();
+                    this->lineIndex = 0;
+                    this->charIndex = 0;
+                }
+            }
+        }
+
+        if (update)
+            this->display.update();
+    }
+
+    void print(const char* str, bool update = true)
+    {
+        while (*str != 0)
+        {
+            PUT_AT_INDEX();
+
+            if (*str == '\n')
+            {
+                this->lineIndex++;
+                this->charIndex=0;
+                PUT_AT_INDEX();
+            }
+            else
+            {
+                this->lines[this->lineIndex].str[this->charIndex] = *str;
+                this->lines[this->lineIndex].length = this->charIndex;
+
+                this->display.write(*str);
+
+                this->charIndex++;
+                if (this->charIndex > LINE_WIDTH)
+                {
+                    this->lineIndex++;
+                    this->charIndex=0;
+
+                    if (this->lineIndex >= NUM_LINES)
+                    {
+                        this->display.clear();
+                        this->lineIndex = 0;
+                        this->charIndex = 0;
+                    }
+                }
+
+            }
+
+            str++;
+        }
+
+        if (update)
+            this->display.update();
+    }
+
+    void println(const char* str, bool update = true)
+    {
+        this->print(str, update);
+
+        this->lineIndex++;
+        this->charIndex=0;
+    }
+
+    void set_cursor(int x, int y)
+    {
+        this->charIndex = x;
+        this->lineIndex = y;
+    }
 };
+
+struct StandardError : public EmbediFileStream
+{    
+    StandardError()
+    {
+        this->descriptor = {SYSERR_NAME, "", READ | WRITE};
+    }
+
+    bool write(const TypeMacros::u8 _byte) override;
+    TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override;
+};
+
+extern StandardError errorStream;
+extern GyverOLED<SSH1106_128x64> error_display;
+extern OLEDTerminal<SSH1106_128x64> error_terminal;
 
 // Implementation of SD Card reading
 struct SDCardFileStream : public EmbediFileStream

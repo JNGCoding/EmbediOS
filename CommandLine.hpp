@@ -43,6 +43,10 @@ inline bool is_space(const char ch) {
     return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0';
 }
 
+struct ArgumentParser
+{
+};
+
 struct CommandLine
 {
     using CLFunction = int(*)(int argc, const char* argv[]);

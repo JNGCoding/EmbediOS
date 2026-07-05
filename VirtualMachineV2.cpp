@@ -31,7 +31,7 @@ inline void set_register(VirtualMachineV2& vm, const TypeMacros::u8 r, const Typ
         if (vm.UNSAFE_MODE) {
             vm.STACK_POINTER = reinterpret_cast<TypeMacros::u8*>(i);
         } else {
-            vm.ERROR_CODE = VMErrors::DIRECT_SP_CHANGE;
+            vm.ERROR_CODE = VMErrors::UNSAFE_MODE_NOT_ENABLED;
         }
     }
     else if (r == 251)
@@ -39,7 +39,7 @@ inline void set_register(VirtualMachineV2& vm, const TypeMacros::u8 r, const Typ
         if (vm.UNSAFE_MODE) {
             vm.STACK_POINTER = reinterpret_cast<TypeMacros::u8*>(i);
         } else {
-            vm.ERROR_CODE = VMErrors::DIRECT_HP_CHANGE;
+            vm.ERROR_CODE = VMErrors::UNSAFE_MODE_NOT_ENABLED;
         }
     }
     else
@@ -679,6 +679,32 @@ int VirtualMachineV2::start_program()
                 default:
                     return VMErrors::INVALID_HEAP_OFFSET;
             }
+        }
+        else if (this->IR == Instructions::uwrite)
+        {
+            if (this->UNSAFE_MODE)
+            {
+                const TypeMacros::u8 vf = this->read8();
+                VMRPtr value;
+
+                if (vf == Instructions::ImmediateIntegerAhead) {
+                    value = this->read32();
+                } else if (vf == Instructions::MemorySpotAhead) {
+                    const TypeMacros::u32 address = this->read32();
+                    value = static_cast<TypeMacros::i32>(this->PROGRAM_MEMORY[address]);
+                } else if (vf == Instructions::RegisterAhead) {
+                    const TypeMacros::u8 r = this->read8();
+                    value = static_cast<TypeMacros::i32>(get_integer_register(*this, r));
+                }
+
+                const TypeMacros::u8 payload = this->read8();
+                *reinterpret_cast<TypeMacros::u8*>(value) = payload;
+            }
+            else
+                return VMErrors::UNSAFE_MODE_NOT_ENABLED;
+        }
+        else if (this->IR == Instructions::uread)
+        {
         }
         else if (this->IR == Instructions::halt)
         {
