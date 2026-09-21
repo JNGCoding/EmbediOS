@@ -12,10 +12,11 @@
 
 #include "VirtualMachine/VirtualMachine.hpp"
 
+#include "OperatingSystem.hpp"
+
 using namespace TypeMacros;
 
 #define MACHINE_RESET_FUNC() ESP.restart()
-
 #define CMD_FUNC(func) int func(int argc, const char* argv[])
 
 CMD_FUNC(echo);
@@ -67,42 +68,46 @@ CMD_FUNC(log_free_mem);
 
 #endif
 
-inline EmbediString CWD{"/"};                 // current working directory
-inline SystemVariables sysVars;               // system variables
-
 #ifdef COMPILE_WITH_SD_INITIALIZATION
 
 SdFat SDCardFileStream::card; // fs
 
 #endif
 
-inline CommandLine CMD; // command line terminal word processor
-
-inline VirtualMachine VM;                 // global virtual machine instance
-inline u8 Program[MAX_PROGRAM_SIZE] = {0};  // program memory reserved in stack for loading program from storage to memory
+extern OperatingSystem OS;
+SystemVariables& __sysvars = OS.systemVariables;
 
 // This function has to be attached to an interrupt to stop an vm program
 // from running upon the press of a button or anyway of how the programmer would like
 // to trigger this interrupt
 void ARDUINO_ISR_ATTR interrupt_vm()
 {
-    VM.ERROR_CODE = VMErrors::VM_INTERRUPTED;
+    OS.VM.ERROR_CODE = VMErrors::VM_INTERRUPTED;
 }
 
 // Load the stdout, stdin, stderr in the file table
-void setup_streams(EmbediFileStream* out, EmbediFileStream* inp, EmbediFileStream* err)
+bool setup_streams(EmbediFileStream* out, EmbediFileStream* inp, EmbediFileStream* err)
 {
-    allFiles.push(out);
-    allFiles.push(inp);
-    allFiles.push(err);
+    OS.outputStream = out;
+    OS.inputStream = inp;
+    OS.errorStream = err;
+
+    if (out != nullptr) OS.fileTable.push(out);
+    if (inp != nullptr) OS.fileTable.push(inp);
+    if (err != nullptr) OS.fileTable.push(err);
+
+    return (out != nullptr) && (inp != nullptr) && (err != nullptr);
 }
 
 // Load basic functions into the Command line
 // echo, restart_machine
 void load_starter_functions()
 {
-    CMD.register_function("restart", restart_machine);
-    CMD.register_function("echo", echo);
+    OS.terminal.register_function("restart", restart_machine);
+    OS.terminal.register_function("echo", echo);
+    OS.terminal.register_function("defvar", create_var);
+    OS.terminal.register_function("redefvar", change_var);
+    OS.terminal.register_function("delvar", delete_var);
 }
 
 // Load display functions
@@ -111,28 +116,28 @@ void load_starter_functions()
 // pinmode_set, pinout_set, pinread, .... etc. Look the manual for more info
 void load_gpio_functions()
 {
-    CMD.register_function("pinmode_set", pin_mode_set);
-    CMD.register_function("pinout_set", pin_out_set);
-    CMD.register_function("pinread", print_pin_read);
+    OS.terminal.register_function("pinmode_set", pin_mode_set);
+    OS.terminal.register_function("pinout_set", pin_out_set);
+    OS.terminal.register_function("pinread", print_pin_read);
 
 #ifdef SUPPORTS_PWM
 
-    CMD.register_function("pwmpin_set", pwm_pin_set);
-    CMD.register_function("pwmwrite", pwm_set);
+    OS.terminal.register_function("pwmpin_set", pwm_pin_set);
+    OS.terminal.register_function("pwmwrite", pwm_set);
 
 #endif
 
 #ifdef SUPPORTS_ADC
 
-    CMD.register_function("adcpin_set", adc_pin_set);
-    CMD.register_function("adcread", print_adc_pin_read);
+    OS.terminal.register_function("adcpin_set", adc_pin_set);
+    OS.terminal.register_function("adcread", print_adc_pin_read);
 
 #endif
 
 #ifdef SUPPORTS_DAC
 
-    CMD.register_function("dacpin_set", dac_pin_set);
-    CMD.register_function("dacwrite", dac_set);
+    OS.terminal.register_function("dacpin_set", dac_pin_set);
+    OS.terminal.register_function("dacwrite", dac_set);
 
 #endif
 }
@@ -142,7 +147,7 @@ void load_gpio_functions()
 void load_debug_functions()
 {
 #ifdef INCLUDE_DEBUG_FUNCTIONS
-    CMD.register_function("freemem", log_free_mem);
+    OS.terminal.register_function("freemem", log_free_mem);
 #endif
 }
 
@@ -151,14 +156,14 @@ void load_debug_functions()
 void load_sd_functions()
 {
 #ifdef COMPILE_WITH_SD_INITIALIZATION
-    CMD.register_function("lsdir", listdir);
-    CMD.register_function("start", run_program);
-    CMD.register_function("dumpf", print_file);
-    CMD.register_function("cd", change_directory);
-    CMD.register_function("mkdir", mkdir);
-    CMD.register_function("rmdir", rmdir);
-    CMD.register_function("create", create);
-    CMD.register_function("delete", del);
+    OS.terminal.register_function("lsdir", listdir);
+    OS.terminal.register_function("start", run_program);
+    OS.terminal.register_function("dumpf", print_file);
+    OS.terminal.register_function("cd", change_directory);
+    OS.terminal.register_function("mkdir", mkdir);
+    OS.terminal.register_function("rmdir", rmdir);
+    OS.terminal.register_function("create", create);
+    OS.terminal.register_function("delete", del);
 #endif
 }
 
@@ -168,6 +173,8 @@ bool setup_sd_card()
 #ifdef COMPILE_WITH_SD_INITIALIZATION
     // Load the SdFat variables to intialize SdCard Streams
     return SDCardFileStream::card.begin(SD_CARD_CHIP_SELECT, SD_SCK_MHZ(8));
+#else
+    return false;
 #endif
 }
 
@@ -193,7 +200,7 @@ void run_basic_loop_iteration()
 
     SystemIO::printf("%s\n", statement);
 
-    CommandLine::FunctionPackage* f = CMD.process_statement(statement);
+    CommandLine::FunctionPackage* f = OS.terminal.process_statement(statement);
 
     if (f != nullptr)
     {
@@ -207,13 +214,13 @@ void run_basic_loop_iteration()
         SystemIO::printf("\"%s\" is not valid command\n", statement);
     }
 
-    SystemIO::printf("$(%s) <- ", CWD.c_str());
+    SystemIO::printf("$(%s) <- ", OS.cwd.c_str());
 }
 
 // Gives the provided statement to the Command Line for processing
 void run_loop_iteration_with_line(const char* statement)
 {
-    CommandLine::FunctionPackage* f = CMD.process_statement(statement);
+    CommandLine::FunctionPackage* f = OS.terminal.process_statement(statement);
 
     if (f != nullptr)
     {
@@ -227,7 +234,7 @@ void run_loop_iteration_with_line(const char* statement)
         SystemIO::printf("\"%s\" is not valid command\n", statement);
     }
 
-    SystemIO::printf("$(%s) <- ", CWD.c_str());
+    SystemIO::printf("$(%s) <- ", OS.cwd.c_str());
 }
 
 // Only works if COMPILE_WITH_SD_INITIALIZATION is defined
@@ -257,7 +264,7 @@ void run_bootafter_file()
                 }
                 else
                 {
-                    CommandLine::FunctionPackage* f = CMD.process_statement(Line);
+                    CommandLine::FunctionPackage* f = OS.terminal.process_statement(Line);
                     if (f != nullptr)
                     {
                         f->function(f->argc, f->argv);
@@ -273,7 +280,7 @@ void run_bootafter_file()
             }
 
             // process any residual command
-            CommandLine::FunctionPackage* f = CMD.process_statement(Line);
+            CommandLine::FunctionPackage* f = OS.terminal.process_statement(Line);
             if (f != nullptr) { f->function(f->argc, f->argv); }
             else
                 SystemIO::fprintf(SYSERR_NAME, "init.cmd: %s is not valid command\n", Line);
@@ -296,45 +303,45 @@ int change_directory(int argc, const char* argv[])
         return -1;
     }
 
-    u32 len = CWD.length();
+    u32 len = OS.cwd.length();
 
     if (string_equals(argv[0], "/"))
     {
-        CWD.set("/");
+        OS.cwd.set("/");
         return 0;
     }
 
     if (string_equals(argv[0], ".."))
     {
-        if (string_equals(CWD.c_str(), "/"))
+        if (string_equals(OS.cwd.c_str(), "/"))
             return 0;
 
         for (i32 i = static_cast<i32>(len) - 2; i >= 0; i--)
         {
-            if (CWD.get_char(i) == '/')
-                CWD.set_length(i + 1);  // Remove the '/'
+            if (OS.cwd.get_char(i) == '/')
+                OS.cwd.set_length(i + 1);  // Remove the '/'
         }
 
         return 0;
     }
 
-    CWD.append(argv[0]);
-    if (CWD.get_char(CWD.length() - 1) != '/')
-        CWD.append("/");
+    OS.cwd.append(argv[0]);
+    if (OS.cwd.get_char(OS.cwd.length() - 1) != '/')
+        OS.cwd.append("/");
 
-    if (!SDCardFileStream::exists(CWD.c_str()))
+    if (!SDCardFileStream::exists(OS.cwd.c_str()))
     {
-        SystemIO::printf("Path %s doesn't exist\n", CWD.c_str());
-        CWD.set_length(len);
+        SystemIO::printf("Path %s doesn't exist\n", OS.cwd.c_str());
+        OS.cwd.set_length(len);
         return -1;
     }
 
     SdFile dir;
-    dir.open(CWD.c_str(), O_READ);
+    dir.open(OS.cwd.c_str(), O_READ);
     if (!dir.isDir())
     {
-        SystemIO::printf("%s is not a dir\n", CWD.c_str());
-        CWD.set_length(len);
+        SystemIO::printf("%s is not a dir\n", OS.cwd.c_str());
+        OS.cwd.set_length(len);
         return -1;
     }
 
@@ -354,7 +361,7 @@ int listdir(int argc, const char* argv[])
             print_size = true;
     }
 
-    const char* path = CWD.c_str();
+    const char* path = OS.cwd.c_str();
     SystemIO::printf("Printing Contents of %s\n", path);
 
     dir.open(path);
@@ -418,25 +425,25 @@ int run_program(int argc, const char* argv[])
 
     SystemIO::printf("Loading program...\n");
 
-    u32 len = CWD.length();
+    u32 len = OS.cwd.length();
 
-    CWD.append(argv[0]);
+    OS.cwd.append(argv[0]);
 
-    SDCardFileStream file(CWD.c_str(), READ);
+    SDCardFileStream file(OS.cwd.c_str(), READ);
     bool opened = SystemIO::open_file(&file);
     if (!opened)
     {
-        CWD.set_length(len);
+        OS.cwd.set_length(len);
         SystemIO::printf("error: failed to open file, exiting...\n");
         return -1;
     }
 
-    CWD.set_length(len);
+    OS.cwd.set_length(len);
 
     u32 appendIndex = 0;
     while (SystemIO::favailable(&file) > 0)
     {
-        Program[ appendIndex++ ] = file.read();
+        OS.programMem[appendIndex++] = file.read();
         if (appendIndex >= MAX_PROGRAM_SIZE)
         {
             SystemIO::printf("error: program size is greater than size limit: %u bytes, exiting...\n", MAX_PROGRAM_SIZE);
@@ -448,12 +455,12 @@ int run_program(int argc, const char* argv[])
 
     SystemIO::printf("Program successfully read, program size: %u bytes\n", appendIndex);
 
-    bool success = VM.prepare(
-        allFiles.get_handle(SYSOUT_NAME),
-        allFiles.get_handle(SYSIN_NAME),
-        allFiles.get_handle(SYSERR_NAME),
+    bool success = OS.VM.prepare(
+        OS.fileTable.get_handle(SYSOUT_NAME),
+        OS.fileTable.get_handle(SYSIN_NAME),
+        OS.fileTable.get_handle(SYSERR_NAME),
         &basicAllocator,
-        Program,
+        OS.programMem,
         appendIndex,
         STARTING_HEAP_SIZE
     );
@@ -464,15 +471,15 @@ int run_program(int argc, const char* argv[])
         return -1;
     }
 
-    int rs = VM.start_program();
+    int rs = OS.VM.start_program();
 
     if (rs == VMErrors::VM_INTERRUPTED)
         SystemIO::printf("Program interrupted with interrupt button\n");
 
     if ((rs != VMErrors::PASS && rs != VMErrors::HALTED && rs != VMErrors::VM_INTERRUPTED) || print_register_dump)
-        VM.register_dump();
+        OS.VM.register_dump();
 
-    VM.cleanup();
+    OS.VM.cleanup();
 
     SystemIO::printf("Program exited with return code = %d\n", rs);
 
@@ -493,19 +500,19 @@ int print_file(int argc, const char* argv[])
             printLineNumbers = true;
     }
 
-    u32 len = CWD.length();
+    u32 len = OS.cwd.length();
 
-    CWD.append(argv[0]);
+    OS.cwd.append(argv[0]);
 
-    SDCardFileStream stream(CWD.c_str(), READ);
+    SDCardFileStream stream(OS.cwd.c_str(), READ);
     if (!SystemIO::open_file(&stream))
     {
-        CWD.set_length(len);
+        OS.cwd.set_length(len);
         SystemIO::printf("error: failed to open file %s\n", argv[0]);
         return -1;
     }
 
-    CWD.set_length(len);
+    OS.cwd.set_length(len);
 
     u8 buffer[256];
 
@@ -552,17 +559,17 @@ int mkdir(int argc, const char* argv[])
             pFlag = true;
     }
 
-    u32 len = CWD.length();
+    u32 len = OS.cwd.length();
 
-    CWD.append(argv[0]);
-    if (!SDCardFileStream::mkdir(CWD.c_str(), pFlag))
+    OS.cwd.append(argv[0]);
+    if (!SDCardFileStream::mkdir(OS.cwd.c_str(), pFlag))
     {
-        SystemIO::printf("error: failed to create directory %s\n", CWD.c_str());
-        CWD.set_length(len);
+        SystemIO::printf("error: failed to create directory %s\n", OS.cwd.c_str());
+        OS.cwd.set_length(len);
         return -1;
     }
 
-    CWD.set_length(len);
+    OS.cwd.set_length(len);
 
     return 0;
 }
@@ -574,17 +581,17 @@ int rmdir(int argc, const char* argv[])
         return -1;
     }
 
-    u32 len = CWD.length();
+    u32 len = OS.cwd.length();
 
-    CWD.append(argv[0]);
-    if (!SDCardFileStream::rmdir(CWD.c_str()))
+    OS.cwd.append(argv[0]);
+    if (!SDCardFileStream::rmdir(OS.cwd.c_str()))
     {
-        SystemIO::printf("error: failed to delete the directory %s\n", CWD.c_str());
-        CWD.set_length(len);
+        SystemIO::printf("error: failed to delete the directory %s\n", OS.cwd.c_str());
+        OS.cwd.set_length(len);
         return -1;
     }
 
-    CWD.set_length(len);
+    OS.cwd.set_length(len);
     return 0;
 }
 int del(int argc, const char* argv[])  
@@ -595,18 +602,18 @@ int del(int argc, const char* argv[])
         return -1;
     }
 
-    u32 len = CWD.length();
+    u32 len = OS.cwd.length();
 
-    CWD.append(argv[0]);
+    OS.cwd.append(argv[0]);
 
-    if (!SDCardFileStream::remove(CWD.c_str()))
+    if (!SDCardFileStream::remove(OS.cwd.c_str()))
     {
-        SystemIO::printf("error: unknown error occured while trying to remove file %s\n", CWD.c_str());
-        CWD.set_length(len);
+        SystemIO::printf("error: unknown error occured while trying to remove file %s\n", OS.cwd.c_str());
+        OS.cwd.set_length(len);
         return -1;
     }
 
-    CWD.set_length(len);
+    OS.cwd.set_length(len);
 
     return 0;
 }
@@ -618,18 +625,18 @@ int create(int argc, const char* argv[])
         return -1;
     }
 
-    u32 len = CWD.length();
+    u32 len = OS.cwd.length();
 
-    CWD.append(argv[0]);
+    OS.cwd.append(argv[0]);
 
-    if (!SDCardFileStream::create(CWD.c_str()))
+    if (!SDCardFileStream::create(OS.cwd.c_str()))
     {
-        SystemIO::printf("error: failed to create file %s\n", CWD.c_str());
-        CWD.set_length(len);
+        SystemIO::printf("error: failed to create file %s\n", OS.cwd.c_str());
+        OS.cwd.set_length(len);
         return -1;
     }
 
-    CWD.set_length(len);
+    OS.cwd.set_length(len);
 
     return 0;
 }
@@ -831,6 +838,48 @@ int echo(int argc, const char* argv[])
 
     SystemIO::flush();
     
+    return 0;
+}
+
+int create_var(int argc, const char* argv[])
+{
+    if (argc == 0)
+    {
+        SystemIO::printf("error: insufficient arguments specified\n");
+        return -1;
+    }
+
+    OS.systemVariables.create(argv[0]);
+
+    if (argc == 2)
+        OS.systemVariables.change(argv[0], argv[1]);
+
+    return 0;
+}
+
+int change_var(int argc, const char* argv[])
+{
+    if (argc <= 2)
+    {
+        SystemIO::printf("error: insufficient arguments specified\n");
+        return -1;
+    }
+
+    OS.systemVariables.change(argv[0], argv[1]);
+
+    return 0;
+}
+
+int delete_var(int argc, const char* argv[])
+{
+    if (argc <= 1)
+    {
+        SystemIO::printf("error: insufficient arguments specified\n");
+        return -1;
+    }
+
+    OS.systemVariables.remove(argv[0]);
+
     return 0;
 }
 

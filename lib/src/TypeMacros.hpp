@@ -2,6 +2,7 @@
 #define __EMBEDI_TYPE_MACROS_HPP__
 
 #include <stdint.h>
+#include <string.h>
 
 #ifndef __AVR__
 #include <assert.h>
@@ -50,17 +51,14 @@ namespace TypeMacros
 constexpr TypeMacros::u32 Kb(double x) { return 1024 * x; }
 constexpr TypeMacros::u32 Mb(double x) { return 1024 * Kb(x); }
 constexpr TypeMacros::u64 Gb(double x) { return 1024 * Mb(x); }
-constexpr bool string_equals(const char* s1, const char* s2) { return strcmp(s1, s2) == 0; }
+
+bool string_equals(const char* s1, const char* s2) { return strcmp(s1, s2) == 0; }
 
 constexpr bool is_space(const char ch)
-{
-    return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0';
-}
+{ return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0'; }
 
 constexpr bool is_digit(const char ch)
-{
-    return (ch >= '0' && ch <= '9');
-}
+{ return (ch >= '0' && ch <= '9'); }
 
 #ifndef embedi_max
 #define embedi_max(x, y) (((x) > (y)) ? (x) : (y))

@@ -136,7 +136,7 @@ struct SystemVariables
     }
 };
 
-extern SystemVariables sysVars;
+extern SystemVariables& __sysvars;
 
 struct CommandLine
 {
@@ -234,7 +234,7 @@ struct CommandLine
             // If we detect a system variable, then just replace the word with the variable's definition
             if (this->loadedFunction.argv_storage[argIndex][0] == '$')
             {
-                SystemVariableValue* varval = sysVars.get_var(this->loadedFunction.argv_storage[argIndex] + 1);
+                SystemVariableValue* varval = __sysvars.get_var(this->loadedFunction.argv_storage[argIndex] + 1);
                 if (varval == nullptr)
                 {
                     SystemIO::fprintf(SYSERR_NAME, "System Variable %s not defined\n", this->loadedFunction.argv_storage[argIndex] + 1);
@@ -255,7 +255,5 @@ struct CommandLine
         return &this->loadedFunction;
     }
 };
-
-extern CommandLine CMD;
 
 #endif

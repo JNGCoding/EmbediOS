@@ -1,12 +1,17 @@
 #include <Arduino.h>
 
-#include "FileSystem/IOStreams.hpp"
+#include <OperatingSystem.hpp>
+#include <OS_Setup.hpp>
 
-SdFat SDCardFileStream::card;
+#include <Connections/WiredConnectivity.hpp>
+
+OperatingSystem OS;
 
 void setup()
 {
-    Serial.begin(115200);
+
+    EmbediSerialManager::init_serial(DEFAULT_SERIAL, EmbediSerialConfig{0, 0, 0, 0});
+    load_starter_functions();
 }
 
 void loop() {

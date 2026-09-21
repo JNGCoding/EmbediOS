@@ -142,9 +142,6 @@ struct FileTable
     EmbediFileStream* get_handle(const char* streamName);
 };
 
-// This is the list that will be handled through-out the filespace
-extern FileTable allFiles;
-
 // Empty class for System Error stream
 // Since we have exhausted Serial for I/O for user interfacing
 // it is made because at a time, it is a must to add
