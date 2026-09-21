@@ -1,4 +1,3 @@
-#include "esp32-hal.h"
 #include "VirtualMachine.hpp"
 
 #define __VM_PROCESS_VALUE__(vf, value)                                                                                                \

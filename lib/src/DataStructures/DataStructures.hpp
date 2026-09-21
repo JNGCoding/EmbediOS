@@ -2,10 +2,12 @@
 #define __EMBEDI_DATA_STRUCTURES_HPP__
 
 #include <Arduino.h>
-#include "TypeMacros.hpp"
-#include "IOStreams.hpp"
-#include "Allocator.hpp"
 #include <string.h>
+
+#include "TypeMacros.hpp"
+
+#include "FileSystem/IOStreams.hpp"
+#include "Allocators/Allocator.hpp"
 
 // A generic pair class
 template<typename T1, typename T2>

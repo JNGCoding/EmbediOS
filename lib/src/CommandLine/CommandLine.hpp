@@ -10,12 +10,15 @@
 // be provided with special allocators to allocate memory
 // To prevent Heap Fragmentation
 
+#include <Arduino.h>
 #include <string.h>
-#include "Defines.hpp"
+
 #include "TypeMacros.hpp"
-#include "Allocator.hpp"
-#include "DataStructures.hpp"
-#include "IOStreams.hpp"
+#include "Defines.hpp"
+
+#include "Allocators/Allocator.hpp"
+#include "DataStructures/DataStructures.hpp"
+#include "FileSystem/IOStreams.hpp"
 
 // I don't know how to give the Operating system the access to kill a process
 // i.e, kill a program while it is running. I guess force the killing via a watchdog

@@ -2,12 +2,14 @@
 #define __EMBEDI_VIRTUAL_MACHINE_HPP__
 
 #include <Arduino.h>
-#include "Allocator.hpp"
 #include "TypeMacros.hpp"
-#include "IOStreams.hpp"
 #include "Defines.hpp"
 
-#include "InternalFunctions.hpp"
+#include "FileSystem/IOStreams.hpp"
+#include "Allocators/Allocator.hpp"
+#include "Internals/InternalFunctions.hpp"
+
+// #include "InternalFunctions.hpp"
 
 constexpr TypeMacros::u8 INTEGER_REGISTER_SPACE = 16;
 constexpr TypeMacros::u8 FLOAT_REGISTER_SPACE   = 16;
