@@ -1,6 +1,12 @@
 #include <Arduino.h>
+#include <OperatingSystem.hpp>
 
-void setup() {
+OperatingSystem os;
+
+void setup()
+{
+    Serial.begin(115200);
+    os.setup();
 }
 
 void loop() {
