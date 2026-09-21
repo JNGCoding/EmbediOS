@@ -88,7 +88,7 @@
             }                                                                                                                           \
         } while (false)
 
-inline void set_register(VirtualMachineV2& vm, const TypeMacros::u8 r, const TypeMacros::i32 i, const TypeMacros::f64 f)
+inline void set_register(VirtualMachine& vm, const TypeMacros::u8 r, const TypeMacros::i32 i, const TypeMacros::f64 f)
 {
     if (r >= INTEGER_OFFSET && r <= (INTEGER_OFFSET + INTEGER_REGISTER_SPACE))
     {
@@ -139,7 +139,7 @@ inline void set_register(VirtualMachineV2& vm, const TypeMacros::u8 r, const Typ
     }
 }
 
-inline void delta_add_register(VirtualMachineV2& vm, const TypeMacros::u8 r, const TypeMacros::i32 di, const TypeMacros::f64 df)
+inline void delta_add_register(VirtualMachine& vm, const TypeMacros::u8 r, const TypeMacros::i32 di, const TypeMacros::f64 df)
 {
     if (r >= INTEGER_OFFSET && r <= (INTEGER_OFFSET + INTEGER_REGISTER_SPACE))
     {
@@ -200,7 +200,7 @@ inline void delta_add_register(VirtualMachineV2& vm, const TypeMacros::u8 r, con
     }
 }
 
-inline TypeMacros::i32 get_integer_register(VirtualMachineV2& vm, const TypeMacros::u8 r)
+inline TypeMacros::i32 get_integer_register(VirtualMachine& vm, const TypeMacros::u8 r)
 {
     if (r >= INTEGER_OFFSET && r <= (INTEGER_OFFSET + INTEGER_REGISTER_SPACE))
         return vm.IREGS[r - INTEGER_OFFSET];
@@ -233,7 +233,7 @@ inline TypeMacros::i32 get_integer_register(VirtualMachineV2& vm, const TypeMacr
     }
 }
 
-bool VirtualMachineV2::prepare(
+bool VirtualMachine::prepare(
     EmbediFileStream* out,
     EmbediFileStream* in,
     EmbediFileStream* err,
@@ -287,7 +287,7 @@ bool VirtualMachineV2::prepare(
     return true;
 }
 
-void VirtualMachineV2::register_dump()
+void VirtualMachine::register_dump()
 {
     // Get the stdout stream
     EmbediFileStream* stream = allFiles.get_handle(SYSOUT_NAME);
@@ -333,7 +333,7 @@ void VirtualMachineV2::register_dump()
     stream->write(reinterpret_cast<const TypeMacros::u8*>(".....\n"), 6);
 }
 
-int VirtualMachineV2::start_program()
+int VirtualMachine::start_program()
 {
 #ifdef MAINTAIN_STABLE_CLOCK
 
@@ -957,14 +957,14 @@ int VirtualMachineV2::start_program()
     return VMErrors::PASS;
 }
 
-int VirtualMachineV2::run()
+int VirtualMachine::run()
 {
     int rs = this->start_program();
     this->cleanup();
     return rs;
 }
 
-void VirtualMachineV2::cleanup()
+void VirtualMachine::cleanup()
 {
     if (this->PROGRAM_MEMORY != nullptr)
     {

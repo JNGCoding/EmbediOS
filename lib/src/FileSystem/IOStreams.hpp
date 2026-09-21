@@ -13,6 +13,9 @@
 
 #include "TypeMacros.hpp"
 
+#include "Allocators/Allocator.hpp"
+#include "DataStructures/DataStructures.hpp"
+
 #ifdef __AVR__
 #undef getchar
 #endif
@@ -119,6 +122,8 @@ struct FileTable
 {
     EmbediFileStream* fileHandles[ MAX_FILE_HANDLES ];
     TypeMacros::u32 count = 0;
+
+    EmbediBasicAllocator* allocator;
 
     // Pushes an EmbediFileStream* onto the buffer
     EmbediFileStream* push(EmbediFileStream* fileStream);

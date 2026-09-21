@@ -1,12 +1,12 @@
 #include <Arduino.h>
-#include <OperatingSystem.hpp>
 
-OperatingSystem os;
+#include "FileSystem/IOStreams.hpp"
+
+SdFat SDCardFileStream::card;
 
 void setup()
 {
     Serial.begin(115200);
-    os.setup();
 }
 
 void loop() {

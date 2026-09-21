@@ -149,7 +149,7 @@ using VMPtr  = TypeMacros::u8*;
 // signed conventions, so IDK why I created it to be honest
 using VMRPtr = TypeMacros::uintptr;
 
-struct VirtualMachineV2
+struct VirtualMachine
 {
     // Memory chunk
     TypeMacros::u8* PROGRAM_MEMORY = nullptr;

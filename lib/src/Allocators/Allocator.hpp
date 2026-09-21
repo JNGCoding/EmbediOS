@@ -91,14 +91,23 @@ private:
     const TypeMacros::u32 capacity;
     TypeMacros::u32 freeIndex = 0;
 public:
-    EmbediPoolAllocator(TypeMacros::u32 numObjects, EmbediAllocator* _allocator, T copyObject) : capacity(numObjects)
+    EmbediPoolAllocator(TypeMacros::u32 numObjects, EmbediAllocator* _allocator, T* copyObject) : capacity(numObjects)
     {
         this->buffer = static_cast<FreeList>(_allocator->alloc(numObjects * sizeof(FreeObject)));
         this->allocator = _allocator;
+
         assert(this->buffer != nullptr && "[EmbediPoolAllocator::EmbediPoolAllocator(u32, EmbediAllocator*)] FATAL ERROR: BUFFER ALLOCATED WAS NULL");
 
-        for (TypeMacros::i32 i = 0; i < numObjects; i++)
-            memcpy(&this->buffer[i].object, &copyObject, sizeof(T));
+        if (copyObject != nullptr)
+        {
+            for (TypeMacros::i32 i = 0; i < numObjects; i++)
+                memcpy(&this->buffer[i].object, copyObject, sizeof(T));
+        }
+        else
+        {
+            for (TypeMacros::i32 i = 0; i < numObjects; i++)
+                this->buffer[i].object = nullptr;
+        }
     }
 
     ~EmbediPoolAllocator()
