@@ -6,8 +6,6 @@
 #include <Connections/WiredConnectivity.hpp>
 #include <FileSystem/IOStreams.hpp>
 
-OperatingSystem OS;
-
 EmbediSerialSystemOutput out;
 EmbediSerialSystemInput inp;
 EmbediDummySystemError err;

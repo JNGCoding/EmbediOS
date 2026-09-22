@@ -208,6 +208,8 @@ struct SDCardFileStream : public EmbediFileStream
 };
 #endif
 
+extern FileTable& __filetable;
+
 namespace SystemIO
 {
     bool open_file(EmbediFileStream* fileStream);

@@ -210,8 +210,6 @@ TypeMacros::u32 SDCardFileStream::available()
 
 #endif
 
-extern FileTable& __filetable;
-
 // Interfacing functions
 namespace SystemIO {
     static EmbediFileStream* standardOut = nullptr;
