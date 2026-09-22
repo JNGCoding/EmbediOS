@@ -75,7 +75,9 @@ SdFat SDCardFileStream::card; // fs
 #endif
 
 extern OperatingSystem OS;
+
 SystemVariables& __sysvars = OS.systemVariables;
+FileTable& __filetable = OS.fileTable;
 
 // This function has to be attached to an interrupt to stop an vm program
 // from running upon the press of a button or anyway of how the programmer would like

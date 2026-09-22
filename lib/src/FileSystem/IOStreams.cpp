@@ -64,7 +64,7 @@ EmbediFileStream* FileTable::get_handle(const char* streamName)
     return nullptr;
 }
 
-FileTable allFiles;
+// FileTable __filetable;
 
 // SDCard File Stream implementation
 
@@ -210,6 +210,8 @@ TypeMacros::u32 SDCardFileStream::available()
 
 #endif
 
+extern FileTable& __filetable;
+
 // Interfacing functions
 namespace SystemIO {
     static EmbediFileStream* standardOut = nullptr;
@@ -221,23 +223,23 @@ namespace SystemIO {
         if (!fileStream->open())
             return false;
 
-        return allFiles.push(fileStream) != nullptr;
+        return __filetable.push(fileStream) != nullptr;
     }
 
     void close_file(EmbediFileStream* fileStream)
     {
         fileStream->close();
-        allFiles.remove(fileStream);
+        __filetable.remove(fileStream);
     }
 
     void close_file(const char* streamName)
     {
-        allFiles.remove(allFiles.get_handle(streamName));
+        __filetable.remove(__filetable.get_handle(streamName));
     }
 
     void fflush(const char* streamName)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream != nullptr)
             stream->flush();
     }
@@ -250,7 +252,7 @@ namespace SystemIO {
 
     TypeMacros::u32 favailable(const char* streamName)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream == nullptr)
             return 0;
 
@@ -267,7 +269,7 @@ namespace SystemIO {
 
     TypeMacros::u8 fgetc(const char* streamName)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream != nullptr)
         {
             return stream->read();
@@ -286,7 +288,7 @@ namespace SystemIO {
 
     void fputc(const char* streamName, const TypeMacros::u8 c)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream != nullptr)
             stream->write(c);
     }
@@ -299,7 +301,7 @@ namespace SystemIO {
 
     TypeMacros::u32 fputs(const char* streamName, const char* str)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream == nullptr)
             return 0;
 
@@ -320,7 +322,7 @@ namespace SystemIO {
 
     TypeMacros::u32 fgets(const char* streamName, char* buffer, TypeMacros::u32 capSize)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream == nullptr)
             return 0;
 
@@ -367,7 +369,7 @@ namespace SystemIO {
 
     TypeMacros::u32 fprintf(const char* streamName, const char* format, ...)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream == nullptr)
             return 0;
 
@@ -705,7 +707,7 @@ namespace SystemIO {
     TypeMacros::u8 getchar()
     {
         if (SystemIO::standardInp == nullptr)
-            SystemIO::standardInp = allFiles.get_handle(SYSIN_NAME);
+            SystemIO::standardInp = __filetable.get_handle(SYSIN_NAME);
 
         assert(SystemIO::standardInp != nullptr && "[SystemIO::getchar()] FATAL ERROR: Standard Input is not defined");
 
@@ -715,7 +717,7 @@ namespace SystemIO {
     TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize)
     {
         if (SystemIO::standardInp == nullptr)
-            SystemIO::standardInp = allFiles.get_handle(SYSIN_NAME);
+            SystemIO::standardInp = __filetable.get_handle(SYSIN_NAME);
 
         assert(SystemIO::standardInp != nullptr && "[SystemIO::getchar()] FATAL ERROR: Standard Input is not defined");
 
@@ -740,7 +742,7 @@ namespace SystemIO {
     TypeMacros::u32 printf(const char* format, ...)
     {
         if (SystemIO::standardOut == nullptr)
-            SystemIO::standardOut = allFiles.get_handle(SYSOUT_NAME);
+            SystemIO::standardOut = __filetable.get_handle(SYSOUT_NAME);
 
         assert(SystemIO::standardOut != nullptr && "[SystemIO::printf(const char*, ...)] FATAL ERROR: Standard Output is not defined");
 
@@ -910,7 +912,7 @@ namespace SystemIO {
     TypeMacros::u32 available()
     {
         if (SystemIO::standardInp == nullptr)
-            SystemIO::standardInp = allFiles.get_handle(SYSIN_NAME);
+            SystemIO::standardInp = __filetable.get_handle(SYSIN_NAME);
 
         assert(SystemIO::standardInp != nullptr && "[SystemIO::available()] FATAL ERROR: Standard Input is not defined");
 
@@ -920,7 +922,7 @@ namespace SystemIO {
     void printchar(const TypeMacros::u8 c)
     {
         if (SystemIO::standardOut == nullptr)
-            SystemIO::standardOut = allFiles.get_handle(SYSOUT_NAME);
+            SystemIO::standardOut = __filetable.get_handle(SYSOUT_NAME);
 
         assert(SystemIO::standardOut != nullptr && "[SystemIO::printchar(const char)] FATAL ERROR: Standard Output is not defined");
 
@@ -930,7 +932,7 @@ namespace SystemIO {
     void perror(const char* str)
     {
         if (SystemIO::standardErr == nullptr)
-            SystemIO::standardErr = allFiles.get_handle(SYSERR_NAME);
+            SystemIO::standardErr = __filetable.get_handle(SYSERR_NAME);
 
         assert(SystemIO::standardErr != nullptr && "[SystemIO::perror(const char*)] FATAL ERROR: Standard Error is not defined");
 
@@ -940,7 +942,7 @@ namespace SystemIO {
     void flush()
     {
         if (SystemIO::standardOut == nullptr)
-            SystemIO::standardOut = allFiles.get_handle(SYSOUT_NAME);
+            SystemIO::standardOut = __filetable.get_handle(SYSOUT_NAME);
 
         assert(SystemIO::standardOut != nullptr && "[SystemIO::printchar(const char)] FATAL ERROR: Standard Output is not defined");
 

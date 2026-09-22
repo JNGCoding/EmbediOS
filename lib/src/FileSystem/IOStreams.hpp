@@ -16,6 +16,8 @@
 #include "Allocators/Allocator.hpp"
 #include "DataStructures/DataStructures.hpp"
 
+#include "OperatingSystem.hpp"
+
 #ifdef __AVR__
 #undef getchar
 #endif
