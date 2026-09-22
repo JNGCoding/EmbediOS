@@ -1,6 +1,5 @@
 #include <Arduino.h>
 
-#include <OperatingSystem.hpp>
 #include <OS_Setup.hpp>
 #include <WiredConnectivity.hpp>
 
@@ -12,7 +11,11 @@ void setup()
 {
     EmbediSerialManager::init_serial(DEFAULT_SERIAL, EmbediSerialConfig{DEFAULT_SERIAL, SERIAL_8N1, -1, -1});
     setup_streams(&out, &inp, &err);
+
+    load_starter_functions();
 }
 
-void loop() {
+void loop()
+{
+    run_basic_loop_iteration();
 }

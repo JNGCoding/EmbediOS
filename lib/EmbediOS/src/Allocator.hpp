@@ -151,7 +151,7 @@ public:
 
     void dump(const char* streamName)
     {
-        EmbediFileStream* stream = allFiles.get_handle(streamName);
+        EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream == nullptr)
             return;
 

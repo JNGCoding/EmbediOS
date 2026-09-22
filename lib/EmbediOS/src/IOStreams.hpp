@@ -138,7 +138,7 @@ struct FileTable
 };
 
 // This is the list that will be handled through-out the filespace
-extern FileTable allFiles;
+extern FileTable& __filetable;
 
 // Empty class for System Error stream
 // Since we have exhausted Serial for I/O for user interfacing
