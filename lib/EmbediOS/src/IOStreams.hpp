@@ -13,11 +13,6 @@
 
 #include "TypeMacros.hpp"
 
-#include "Allocators/Allocator.hpp"
-#include "DataStructures/DataStructures.hpp"
-
-#include "OperatingSystem.hpp"
-
 #ifdef __AVR__
 #undef getchar
 #endif
@@ -125,8 +120,6 @@ struct FileTable
     EmbediFileStream* fileHandles[ MAX_FILE_HANDLES ];
     TypeMacros::u32 count = 0;
 
-    EmbediBasicAllocator* allocator;
-
     // Pushes an EmbediFileStream* onto the buffer
     EmbediFileStream* push(EmbediFileStream* fileStream);
 
@@ -143,6 +136,9 @@ struct FileTable
     // stored in it's descriptor
     EmbediFileStream* get_handle(const char* streamName);
 };
+
+// This is the list that will be handled through-out the filespace
+extern FileTable allFiles;
 
 // Empty class for System Error stream
 // Since we have exhausted Serial for I/O for user interfacing
@@ -161,7 +157,6 @@ struct EmbediDummySystemError : public EmbediFileStream
 
 // Implementation of SD Card File Streams
 #ifdef COMPILE_WITH_SD_INITIALIZATION
-
 struct SDCardFileStream : public EmbediFileStream
 {
     static SdFat card;
@@ -182,13 +177,19 @@ struct SDCardFileStream : public EmbediFileStream
     TypeMacros::u32 available() override;
 
     static bool exists(const char* path)
-    { return card.exists(path); }
+    {
+        return card.exists(path);
+    }
 
     static bool mkdir(const char* path, const bool rooted)
-    { return card.mkdir(path, rooted); }
+    {
+        return card.mkdir(path, rooted);
+    }
 
     static bool rmdir(const char* path)
-    { return card.rmdir(path); }
+    {
+        return card.rmdir(path);
+    }
 
     static bool create(const char* path)
     {
@@ -204,14 +205,13 @@ struct SDCardFileStream : public EmbediFileStream
     }
 
     static bool remove(const char* path)
-    { return card.remove(path); }
+    {
+        return card.remove(path);
+    }
 };
 #endif
 
-extern FileTable& __filetable;
-
-namespace SystemIO
-{
+namespace SystemIO {
     bool open_file(EmbediFileStream* fileStream);
     void close_file(EmbediFileStream* fileStream);
     void close_file(const char* streamName);

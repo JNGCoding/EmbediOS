@@ -290,7 +290,7 @@ bool VirtualMachine::prepare(
 void VirtualMachine::register_dump()
 {
     // Get the stdout stream
-    EmbediFileStream* stream = allFiles.get_handle(SYSOUT_NAME);
+    EmbediFileStream* stream = __filetable.get_handle(SYSOUT_NAME);
     if (stream == nullptr)
         return;
 

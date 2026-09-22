@@ -5,9 +5,9 @@
 #include "TypeMacros.hpp"
 #include "Defines.hpp"
 
-#include "FileSystem/IOStreams.hpp"
-#include "Allocators/Allocator.hpp"
-#include "Internals/InternalFunctions.hpp"
+#include "IOStreams.hpp"
+#include "Allocator.hpp"
+#include "InternalFunctions.hpp"
 
 // #include "InternalFunctions.hpp"
 

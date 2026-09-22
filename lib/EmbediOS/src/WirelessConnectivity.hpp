@@ -6,12 +6,10 @@
 
 #include "TypeMacros.hpp"
 #include "Defines.hpp"
+#include "IOStreams.hpp"
 
-#include "Allocators/Allocator.hpp"
-#include "DataStructures/DataStructures.hpp"
-
-#include "FileSystem/IOStreams.hpp"
-
+#include "Allocator.hpp"
+#include "DataStructures.hpp"
 
 #ifdef COMPILE_WITH_WIFI_INITIALIZATION
 

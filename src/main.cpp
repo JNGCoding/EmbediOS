@@ -2,9 +2,7 @@
 
 #include <OperatingSystem.hpp>
 #include <OS_Setup.hpp>
-
-#include <Connections/WiredConnectivity.hpp>
-#include <FileSystem/IOStreams.hpp>
+#include <WiredConnectivity.hpp>
 
 EmbediSerialSystemOutput out;
 EmbediSerialSystemInput inp;

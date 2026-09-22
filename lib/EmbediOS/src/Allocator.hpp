@@ -2,10 +2,9 @@
 #define __EMBEDI_ALLOCATOR_HPP__
 
 #include <Arduino.h>
-#include <stdlib.h>
-
 #include "TypeMacros.hpp"
-#include "FileSystem/IOStreams.hpp"
+#include "IOStreams.hpp"
+#include <stdlib.h>
 
 inline TypeMacros::u32 align_up(TypeMacros::u32 value, TypeMacros::u32 alignment = MAX_ALIGNMENT) {
     return (value + alignment - 1) + ~(alignment - 1);
@@ -91,23 +90,14 @@ private:
     const TypeMacros::u32 capacity;
     TypeMacros::u32 freeIndex = 0;
 public:
-    EmbediPoolAllocator(TypeMacros::u32 numObjects, EmbediAllocator* _allocator, T* copyObject) : capacity(numObjects)
+    EmbediPoolAllocator(TypeMacros::u32 numObjects, EmbediAllocator* _allocator, T copyObject) : capacity(numObjects)
     {
         this->buffer = static_cast<FreeList>(_allocator->alloc(numObjects * sizeof(FreeObject)));
         this->allocator = _allocator;
-
         assert(this->buffer != nullptr && "[EmbediPoolAllocator::EmbediPoolAllocator(u32, EmbediAllocator*)] FATAL ERROR: BUFFER ALLOCATED WAS NULL");
 
-        if (copyObject != nullptr)
-        {
-            for (TypeMacros::i32 i = 0; i < numObjects; i++)
-                memcpy(&this->buffer[i].object, copyObject, sizeof(T));
-        }
-        else
-        {
-            for (TypeMacros::i32 i = 0; i < numObjects; i++)
-                this->buffer[i].object = nullptr;
-        }
+        for (TypeMacros::i32 i = 0; i < numObjects; i++)
+            memcpy(&this->buffer[i].object, &copyObject, sizeof(T));
     }
 
     ~EmbediPoolAllocator()
@@ -161,7 +151,7 @@ public:
 
     void dump(const char* streamName)
     {
-        EmbediFileStream* stream = __filetable.get_handle(streamName);
+        EmbediFileStream* stream = allFiles.get_handle(streamName);
         if (stream == nullptr)
             return;
 

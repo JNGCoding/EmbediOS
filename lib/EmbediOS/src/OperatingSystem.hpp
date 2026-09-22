@@ -1,31 +1,21 @@
-#ifndef __EMBEDI_OS_OPERATING_SYSTEM_HPP__
-#define __EMBEDI_OS_OPERATING_SYSTEM_HPP__
+#ifndef __EMBEDI_OPERATING_SYSTEM_HPP__
+#define __EMBEDI_OPERATING_SYSTEM_HPP__
 
-#include "TypeMacros.hpp"
-#include "Defines.hpp"
-
-#include "FileSystem/IOStreams.hpp"
-#include "CommandLine/CommandLine.hpp"
-#include "DataStructures/DataStructures.hpp"
-#include "VirtualMachine/VirtualMachine.hpp"
+#include "IOStreams.hpp"
+#include "CommandLine.hpp"
+#include "DataStructures.hpp"
 
 struct OperatingSystem
 {
-    EmbediFileStream* inputStream  = nullptr;
-    EmbediFileStream* outputStream = nullptr;
-    EmbediFileStream* errorStream  = nullptr;
-
-    EmbediString cwd;
-
+    EmbediFileStream* outputStream;
+    EmbediFileStream* inputStream;
+    EmbediFileStream* errorStream;
     FileTable fileTable;
-
     SystemVariables systemVariables;
     CommandLine terminal;
+    EmbediString cwd;
 
-    VirtualMachine VM;
-    u8 programMem[MAX_PROGRAM_SIZE] = {0};
-
-    OperatingSystem() : fileTable(), terminal(), cwd("/")
+    OperatingSystem() : cwd("/")
     {}
 };
 

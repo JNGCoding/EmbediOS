@@ -16,9 +16,9 @@
 #include "TypeMacros.hpp"
 #include "Defines.hpp"
 
-#include "Allocators/Allocator.hpp"
-#include "DataStructures/DataStructures.hpp"
-#include "FileSystem/IOStreams.hpp"
+#include "Allocator.hpp"
+#include "DataStructures.hpp"
+#include "IOStreams.hpp"
 
 // I don't know how to give the Operating system the access to kill a process
 // i.e, kill a program while it is running. I guess force the killing via a watchdog
