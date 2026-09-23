@@ -6,6 +6,7 @@
 #include "TypeMacros.hpp"
 #include "IOStreams.hpp"
 #include "CommandLine.hpp"
+#include "SystemVariables.hpp"
 #include "Defines.hpp"
 #include "VirtualMachine.hpp"
 #include "OperatingSystem.hpp"
