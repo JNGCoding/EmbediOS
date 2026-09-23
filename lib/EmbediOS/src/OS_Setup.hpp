@@ -16,6 +16,7 @@ using namespace TypeMacros;
 
 #define CMD_FUNC(func) int func(int argc, const char* argv[])
 
+CMD_FUNC(alive);
 CMD_FUNC(echo);
 CMD_FUNC(restart_machine);
 CMD_FUNC(create_var);
@@ -87,9 +88,13 @@ void ARDUINO_ISR_ATTR interrupt_vm()
 // Load the stdout, stdin, stderr in the file table
 void setup_streams(EmbediFileStream* out, EmbediFileStream* inp, EmbediFileStream* err)
 {
-    OS.fileTable.push(out);
-    OS.fileTable.push(inp);
-    OS.fileTable.push(err);
+    OS.outputStream = out;
+    OS.inputStream = inp;
+    OS.errorStream = err;
+
+    if (out != nullptr) OS.fileTable.push(out);
+    if (inp != nullptr) OS.fileTable.push(inp);
+    if (err != nullptr) OS.fileTable.push(err);
 }
 
 // Load basic functions into the Command line
@@ -98,6 +103,7 @@ void load_starter_functions()
 {
     OS.terminal.register_function("restart", restart_machine);
     OS.terminal.register_function("echo", echo);
+    OS.terminal.register_function("alive", alive);
 }
 
 // Load display functions
@@ -826,6 +832,12 @@ int echo(int argc, const char* argv[])
 
     SystemIO::flush();
     
+    return 0;
+}
+
+int alive(int argc, const char* argv[])
+{
+    SystemIO::printf("Machine EmbediOS:%s (%s) is operable.\n", VARIANT_NAME, VERSION);
     return 0;
 }
 
