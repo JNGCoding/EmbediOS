@@ -147,4 +147,6 @@ constexpr TypeMacros::u32 BATCH_SIZE = 100;
 
 #endif
 
+constexpr TypeMacros::u32 EVENT_LOOP_QUEUE_SIZE = Kb(4);
+
 #endif

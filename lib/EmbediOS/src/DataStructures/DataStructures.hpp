@@ -1374,6 +1374,73 @@ public:
     {
         memset(this->buffer, 0, CAPACITY * sizeof(T));
     }
+
+    // Get the underlying raw C buffer
+    T* get_buf() const
+    {
+        return this->buffer;
+    }
+};
+
+// A basic implementation of single-ended FIFO queue
+template<typename T>
+class EmbediQueue
+{
+private:
+    T* buf = nullptr;
+
+    const TypeMacros::u32 capacity;
+    TypeMacros::u32 count = 0, readptr = 0, writeptr = 0;
+
+public:
+    EmbediQueue(T* buffer, const TypeMacros::u32 cap) : capacity(cap)
+    {
+        this->buf = buffer;
+    }
+
+    bool enqueue(const T& element)
+    {
+        if (this->is_full())
+            return false;
+
+        this->buf[this->writeptr] = element;
+        this->writeptr = (this->writeptr + 1) % this->capacity;
+        this->count++;
+
+        return true;
+    }
+
+    T* dequeue()
+    {
+        if (this->is_empty())
+            return nullptr;
+
+        T* element = &this->buf[this->readptr];
+        this->readptr = (this->readptr + 1) % this->capacity;
+        this->count--;
+
+        return element;
+    }
+
+    const void size() const
+    {
+        return this->count;
+    }
+
+    const void cap_size() const
+    {
+        return this->capacity;
+    }
+
+    const bool is_empty() const
+    {
+        return this->size() == 0;
+    }
+
+    const bool is_full() const
+    {
+        return this->size() >= this->capacity;
+    }
 };
 
 #endif

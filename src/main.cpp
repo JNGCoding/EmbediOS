@@ -3,8 +3,8 @@
 #include <OS_Setup.hpp>
 #include <Connectivity/WiredConnectivity.hpp>
 
-EmbediSerialSystemOutput out;
-EmbediSerialSystemInput inp;
+EmbediSerialSystemOutput out(DEFAULT_SERIAL);
+EmbediSerialSystemInput inp(DEFAULT_SERIAL);
 EmbediDummySystemError err;
 
 void setup()

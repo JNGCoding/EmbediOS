@@ -45,6 +45,9 @@ namespace TypeMacros
     using uintptr = uintptr_t;
     using cstr = char*;
     template<typename Type> using buffer = Type*;
+
+    // helper types
+    using emtime = usize;
 };
 
 constexpr TypeMacros::u32 Kb(double x) { return 1024 * x; }
