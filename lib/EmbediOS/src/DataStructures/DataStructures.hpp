@@ -2,10 +2,11 @@
 #define __EMBEDI_DATA_STRUCTURES_HPP__
 
 #include <Arduino.h>
-#include "TypeMacros.hpp"
-#include "IOStreams.hpp"
-#include "Allocator.hpp"
 #include <string.h>
+
+#include "TypeMacros.hpp"
+#include "../FileSystem/IOStreams.hpp"
+#include "../Allocator/Allocator.hpp"
 
 // A generic pair class
 template<typename T1, typename T2>
@@ -261,7 +262,7 @@ public:
 
     // Returns the pointer to the object stored at the index specified if success else nullptr
     // `index` the index position of the object
-    T* get(const TypeMacros::u32 index)
+    T* get(const TypeMacros::u32 index) const
     {
         if (index >= this->count)
             return nullptr;
@@ -481,7 +482,7 @@ public:
 
     // Checks if this instance equals to the other instance
     // `other` the second EmbediList instance for the scan
-    bool equals(EmbediList& other)
+    bool equals(EmbediList& other) const
     {
         if (this->size() != other.count)
             return false;
@@ -513,13 +514,13 @@ public:
     }
 
     // Returns a pointer to the DoublyNode<T> instance of the tail of the list
-    ListNode* get_tail()
+    ListNode* get_tail() const
     {
         return this->tail;
     }
 
     // Returns a pointer to the DoublyNode<T> instance of the head of the list
-    ListNode* get_head()
+    ListNode* get_head() const
     {
         return this->head;
     }
@@ -1132,9 +1133,7 @@ template<typename K>
 struct DefaultComparator
 {
     static bool equals(const K& v1, const K& v2)
-    {
-        return v1 == v2;
-    }
+    { return v1 == v2; }
 };
 
 template<typename K, typename V, typename Compare = DefaultComparator<K>>
@@ -1293,6 +1292,16 @@ public:
             this->buckets[i]->clear();
 
         this->count = 0;
+    }
+
+    // Returns a const pointer to the bucket in the hashtable, if failed return nullptr
+    // This function is strictly their for the internal workings of the library, not to be used by the user in any case
+    const EmbediList<Entry>* get_bucket(const TypeMacros::u32 index) const
+    {
+        if (index >= this->numBuckets)
+            return nullptr;
+
+        return this->buckets[index];
     }
 };
 

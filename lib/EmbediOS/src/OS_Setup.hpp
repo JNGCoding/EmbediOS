@@ -3,12 +3,13 @@
 
 #include <Arduino.h>
 #include <SdFat.h>
+
 #include "TypeMacros.hpp"
-#include "IOStreams.hpp"
-#include "CommandLine.hpp"
-#include "SystemVariables.hpp"
+#include "FileSystem/IOStreams.hpp"
+#include "CommandLine/CommandLine.hpp"
+#include "CommandLine/SystemVariables.hpp"
 #include "Defines.hpp"
-#include "VirtualMachine.hpp"
+#include "VirtualMachine/VirtualMachine.hpp"
 #include "OperatingSystem.hpp"
 
 using namespace TypeMacros;
@@ -23,6 +24,7 @@ CMD_FUNC(restart_machine);
 CMD_FUNC(create_var);
 CMD_FUNC(change_var);
 CMD_FUNC(delete_var);
+CMD_FUNC(print_vars);
 CMD_FUNC(pin_mode_set);
 CMD_FUNC(pin_out_set);
 CMD_FUNC(print_pin_read);
@@ -105,6 +107,10 @@ void load_starter_functions()
     OS.terminal.register_function("restart", restart_machine);
     OS.terminal.register_function("echo", echo);
     OS.terminal.register_function("alive", alive);
+    OS.terminal.register_function("crtvar", create_var);
+    OS.terminal.register_function("setvar", change_var);
+    OS.terminal.register_function("delvar", delete_var);
+    OS.terminal.register_function("allvars", print_vars);
 }
 
 // Load display functions
@@ -841,5 +847,58 @@ int alive(int argc, const char* argv[])
     SystemIO::printf("Machine EmbediOS:%s (%s) is operable.\n", VARIANT_NAME, VERSION);
     return 0;
 }
+
+int create_var(int argc, const char* argv[])
+{
+    if (argc <= 1)
+    {
+        SystemIO::printf("error: insufficient arguments provided\n");
+        return -1;
+    }
+
+    if (argc == 1)
+    {
+        OS.systemVariables.create(argv[0]);
+    }
+    else if (argc > 1)
+    {
+        OS.systemVariables.create(argv[0], argv[1]);
+    }
+
+    return 0;
+}
+
+int change_var(int argc, const char* argv[])
+{
+    if (argc <= 2)
+    {
+        SystemIO::printf("error: insufficient argument provided\n");
+        return -1;
+    }
+
+    OS.systemVariables.change(argv[0], argv[1]);
+
+    return 0;
+}
+
+int delete_var(int argc, const char* argv[])
+{
+    if (argc <= 1)
+    {
+        SystemIO::printf("error: insufficient argument provided\n");
+        return -1;
+    }
+
+    OS.systemVariables.remove(argv[0]);
+
+    return 0;
+}
+
+int print_vars(int argc, const char* argv[])
+{
+    OS.systemVariables.print_all_entries(OS.outputStream);
+    return 0;
+}
+
 
 #endif

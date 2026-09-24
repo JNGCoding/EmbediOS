@@ -3,10 +3,12 @@
 
 #include "TypeMacros.hpp"
 #include "Defines.hpp"
-#include "IOStreams.hpp"
-#include "CommandLine.hpp"
-#include "DataStructures.hpp"
-#include "VirtualMachine.hpp"
+
+#include "FileSystem/IOStreams.hpp"
+#include "CommandLine/CommandLine.hpp"
+#include "CommandLine/SystemVariables.hpp"
+#include "DataStructures/DataStructures.hpp"
+#include "VirtualMachine/VirtualMachine.hpp"
 
 struct OperatingSystem
 {

@@ -2,7 +2,8 @@
 #define __EMBEDI_SYSTEM_VARIABLES_HPP__
 
 #include "Defines.hpp"
-#include "DataStructures.hpp"
+#include "../DataStructures/DataStructures.hpp"
+#include "../FileSystem/IOStreams.hpp"
 
 // trivial data for storing system variables
 // aka name - value, where both are strings
@@ -109,6 +110,45 @@ struct SystemVariables
         snprintf(varname.name, MAX_SYSTEM_VAR_NAME_LENGTH, name);
 
         return this->variables.get(varname);
+    }
+
+    void print_all_entries(const char* stream_name)
+    {
+        EmbediFileStream* stream = __filetable.get_handle(stream_name);
+        if (stream == nullptr)
+        {
+            SystemIO::perror("[SystemVariables::print_all_entries(EmbediFileStream*)] Error: stream provided is null\n");
+            return;
+        }
+
+        for (int i = 0; i < 128; i++)
+        {
+            const EmbediList<EmbediPair<SystemVariableName, SystemVariableValue>>* bucket = this->variables.get_bucket(i);
+            for (TypeMacros::u32 i = 0; i < bucket->size(); i++)
+            {
+                EmbediPair<SystemVariableName, SystemVariableValue>* entry = bucket->get(i);
+                SystemIO::fprintf(stream, "%u) %s - %s\n", i, entry->a.name, entry->b.value);
+            }
+        }
+    }
+
+    void print_all_entries(EmbediFileStream* stream)
+    {
+        if (stream == nullptr)
+        {
+            SystemIO::perror("[SystemVariables::print_all_entries(EmbediFileStream*)] Error: stream provided is null\n");
+            return;
+        }
+
+        for (int i = 0; i < 128; i++)
+        {
+            const EmbediList<EmbediPair<SystemVariableName, SystemVariableValue>>* bucket = this->variables.get_bucket(i);
+            for (TypeMacros::u32 i = 0; i < bucket->size(); i++)
+            {
+                EmbediPair<SystemVariableName, SystemVariableValue>* entry = bucket->get(i);
+                SystemIO::fprintf(stream, "%u) %s - %s\n", i, entry->a.name, entry->b.value);
+            }
+        }
     }
 };
 

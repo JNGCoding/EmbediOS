@@ -2,8 +2,9 @@
 #define __EMBEDI_SERIAL_MANAGER_HPP__
 
 #include <Arduino.h>
-#include "IOStreams.hpp"
 #include "TypeMacros.hpp"
+
+#include "../FileSystem/IOStreams.hpp"
 
 constexpr TypeMacros::u32 DEFAULT_SERIAL = 0;
 

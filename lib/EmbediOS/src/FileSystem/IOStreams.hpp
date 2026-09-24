@@ -11,7 +11,7 @@
 #include <SdFat.h>
 #endif
 
-#include "TypeMacros.hpp"
+#include "../TypeMacros.hpp"
 
 #ifdef __AVR__
 #undef getchar

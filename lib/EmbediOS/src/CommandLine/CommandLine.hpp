@@ -16,9 +16,9 @@
 #include "TypeMacros.hpp"
 #include "Defines.hpp"
 
-#include "Allocator.hpp"
-#include "DataStructures.hpp"
-#include "IOStreams.hpp"
+#include "../Allocator/Allocator.hpp"
+#include "../DataStructures/DataStructures.hpp"
+#include "../FileSystem/IOStreams.hpp"
 
 #include "SystemVariables.hpp"
 

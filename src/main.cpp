@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #include <OS_Setup.hpp>
-#include <WiredConnectivity.hpp>
+#include <Connectivity/WiredConnectivity.hpp>
 
 EmbediSerialSystemOutput out;
 EmbediSerialSystemInput inp;
