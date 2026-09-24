@@ -51,7 +51,9 @@ public:
 // Default Serial STD Output for ease of use
 struct EmbediSerialSystemOutput : public EmbediFileStream
 {
-    EmbediSerialSystemOutput() { this->descriptor = {SYSOUT_NAME, "", WRITE}; }
+    HardwareSerial& serial = Serial;
+
+    EmbediSerialSystemOutput(TypeMacros::u32 index);
 
     bool write(const TypeMacros::u8 _byte) override;
     TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override;
@@ -61,8 +63,10 @@ struct EmbediSerialSystemOutput : public EmbediFileStream
 // Default Serial STD Input for ease of use
 struct EmbediSerialSystemInput : public EmbediFileStream
 {
-    EmbediSerialSystemInput() { this->descriptor = {SYSIN_NAME, "", READ }; }
-    
+    HardwareSerial& serial = Serial;
+
+    EmbediSerialSystemInput(TypeMacros::u32 index);
+
     TypeMacros::u8 read() override;
     TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) override;
     TypeMacros::u32 available() override;

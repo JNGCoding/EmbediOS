@@ -1,6 +1,14 @@
 #include "WiredConnectivity.hpp"
 
 // Standard IO Stream implementation
+EmbediSerialSystemOutput::EmbediSerialSystemOutput(TypeMacros::u32 index)
+{
+    if (index == 0)      { serial = Serial; }
+    else if (index == 1) { serial = Serial2; }
+
+    this->descriptor = {SYSOUT_NAME, "", WRITE};
+}
+
 bool EmbediSerialSystemOutput::write(const TypeMacros::u8 _byte)
 {
     Serial.write(_byte);
@@ -18,17 +26,26 @@ void EmbediSerialSystemOutput::flush()
     Serial.flush();
 }
 
+EmbediSerialSystemInput::EmbediSerialSystemInput(TypeMacros::u32 index)
+{
+    if (index == 0)      { this->serial = Serial; }
+    else if (index == 1) { this->serial = Serial2; }
+
+    this->descriptor = {SYSIN_NAME, "", READ };
+}
+
+
 TypeMacros::u8 EmbediSerialSystemInput::read()
 {
-    return Serial.read();
+    return this->serial.read();
 }
 
 TypeMacros::u32 EmbediSerialSystemInput::read(TypeMacros::u8* buffer, TypeMacros::u32 size)
 {
-    return Serial.readBytes(buffer, size);
+    return this->serial.readBytes(buffer, size);
 }
 
 TypeMacros::u32 EmbediSerialSystemInput::available()
 {
-    return Serial.available();
+    return this->serial.available();
 }
