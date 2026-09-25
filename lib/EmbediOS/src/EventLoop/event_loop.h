@@ -2,6 +2,7 @@
 #define __DEVENT_LOOP_H__
 
 #include <Arduino.h>
+
 #include <stdbool.h>
 
 #include "event_queue.h"
@@ -53,7 +54,7 @@ bool push_event_to_loop(event_type type, const char* refer, event_loop* loop);
  * @brief Calculates the time passed from a `start` in milli-seconds
  * @return Returns the Calculated time in milli-seconds
  */
-size_t __time_millis(clock_t start);
+size_t __time_millis(size_t start);
 
 /**
  * @warning Not to be used by user

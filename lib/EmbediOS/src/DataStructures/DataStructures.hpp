@@ -1422,12 +1422,12 @@ public:
         return element;
     }
 
-    const void size() const
+    const TypeMacros::u32 size() const
     {
         return this->count;
     }
 
-    const void cap_size() const
+    const TypeMacros::u32 cap_size() const
     {
         return this->capacity;
     }

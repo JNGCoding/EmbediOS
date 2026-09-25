@@ -99,7 +99,7 @@ bool push_event_to_loop(event_type type, const char* refer, event_loop* loop)
     return push_event(make_event(type, refer), loop->events);
 }
 
-size_t __task_millis(size_t start)
+size_t __time_millis(size_t start)
 {
     return millis() - start;
 }
@@ -153,7 +153,7 @@ void loop_start(event_loop* loop)
             loop->current_task = get_task(loop->current_index, loop->tasks);
             bool task_ran = false;   // A counter to check if the current task ran
 
-            if (millis(loop->current_task->start) >= loop->current_task->time)
+            if (__time_millis(loop->current_task->start) >= loop->current_task->time)
             {
                 if (!loop->current_task->skip && !loop->current_task->pause)
                 {
