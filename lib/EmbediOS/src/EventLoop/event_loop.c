@@ -169,8 +169,34 @@ void loop_start(event_loop* loop)
             }
         }
 
-        Sleep(1);
+        // inbuilt function provided by Espressif for accurate timings
+        ets_delay(1000);
     }
+}
+
+bool end_loop(event_loop* loop)
+{
+    return push_event_to_loop(EXIT_LOOP, NULL, loop);
+}
+
+bool del_task(const char* refer, event_loop* loop)
+{
+    return push_event_to_loop(DELETE_TASK, refer, loop);
+}
+
+bool skip_next_iter(const char* refer, event_loop* loop)
+{
+    return push_event_to_loop(SKIP_NEXT_EXEC, refer, loop);
+}
+
+bool paise_task(const char* refer, event_loop* loop)
+{
+    return push_event_to_loop(PAUSE_TASK, refer, loop);
+}
+
+bool resume_task(const char* refer, event_loop* loop)
+{
+    return push_event_to_loop(RESUME_TASK, refer, loop);
 }
 
 #undef cmp_retstr

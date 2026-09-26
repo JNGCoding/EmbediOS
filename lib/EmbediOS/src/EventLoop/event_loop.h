@@ -66,4 +66,39 @@ void loop_check_event(event_loop* loop);
  */
 void loop_start(event_loop* loop);
 
+// Helper functions
+
+/**
+ * @brief prepares and send the `EXIT_LOOP` event
+ * @return returns true if successful else false
+ */
+bool end_loop(event_loop* loop);
+
+/**
+ * @brief prepares and send the `DELETE_TASK` event  
+ * deletes the currently running task after its execution if `refer` is NULL
+ * @return returns true if successful else false
+ */
+bool del_task(const char* refer, event_loop* loop);
+
+/**
+ * @brief prepares and send the `SKIP_NEXT_EXEC` event  
+ * skips the next iteration of the currently running task after its execution if `refer` is NULL
+ * @return returns true if successful else false
+ */
+bool skip_next_iter(const char* refer, event_loop* loop);
+
+/**
+ * @brief prepares and send the `PAUSE_TASK` event  
+ * pauses the currently running task after its execution if `refer` is NULL
+ * @return returns true if successful else false
+ */
+bool paise_task(const char* refer, event_loop* loop);
+
+/**
+ * @brief prepares and send the `RESUME_TASK` event
+ * @return returns true if successful else false
+ */
+bool resume_task(const char* refer, event_loop* loop);
+
 #endif

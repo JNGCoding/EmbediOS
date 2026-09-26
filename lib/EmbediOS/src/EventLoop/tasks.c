@@ -124,3 +124,6 @@ task* get_task_by_name(const char* name, task_vector* tvec)
 
     return NULL;
 }
+
+#undef TASK_VECTOR_MULTIPLY_FACTOR
+#undef TASK_VECTOR_INITIAL_SIZE
