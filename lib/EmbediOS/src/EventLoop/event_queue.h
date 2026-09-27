@@ -23,6 +23,10 @@ typedef struct event_t
     const char* refer;
 } event;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Returns an instance of event allocated on the stack
  */
@@ -63,5 +67,9 @@ event pop_event(event_queue* equeue);
  * @brief prints the entire queue
  */
 void print_event_queue(event_queue* equeue);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

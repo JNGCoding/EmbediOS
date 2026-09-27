@@ -20,6 +20,10 @@ typedef struct event_loop_t
     task* current_task;
 } event_loop;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Creates an instance of the event loop on the heap and returns it
  * @return A new instance of event loop by pointer, if fails returns NULL
@@ -93,12 +97,16 @@ bool skip_next_iter(const char* refer, event_loop* loop);
  * pauses the currently running task after its execution if `refer` is NULL
  * @return returns true if successful else false
  */
-bool paise_task(const char* refer, event_loop* loop);
+bool pause_task(const char* refer, event_loop* loop);
 
 /**
  * @brief prepares and send the `RESUME_TASK` event
  * @return returns true if successful else false
  */
 bool resume_task(const char* refer, event_loop* loop);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

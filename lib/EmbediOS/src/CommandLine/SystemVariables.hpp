@@ -152,6 +152,34 @@ struct SystemVariables
     }
 };
 
+TypeMacros::usize decode_string_to_number(const char* str)
+{
+    return str[0] << 56 |
+              str[1] << 48 |
+              str[2] << 40 |
+              str[3] << 32 |
+              str[4] << 24 |
+              str[5] << 16  |
+              str[6] << 8   |
+              str[7] & 0xFFFFFFFFFFFFFFFF;
+}
+
+void encode_number_to_string(TypeMacros::usize number, char* buf)
+{
+    if (buf == nullptr)
+        return;
+    
+    buf[0] = number >> 56 & 0xFF;
+    buf[1] = number >> 48 & 0xFF;
+    buf[2] = number >> 40 & 0xFF;
+    buf[3] = number >> 32 & 0xFF;
+    buf[4] = number >> 24 & 0xFF;
+    buf[5] = number >> 16 & 0xFF;
+    buf[6] = number >> 8 & 0xFF;
+    buf[7] = number & 0xFF;
+    buf[8] = '\0';
+}
+
 extern SystemVariables& __sysvars;
 
 #endif

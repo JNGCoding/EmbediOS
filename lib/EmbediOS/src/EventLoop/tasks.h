@@ -42,6 +42,10 @@ typedef struct task_t
     bool pause;
 } task;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Returns an instance of the task struct allocated on the stack
  */
@@ -109,5 +113,9 @@ task* get_task_by_name(const char* name, task_vector* tvec);
  * @brief Prints a formatted output of `tvec`
  */
 void print_task_list(task_vector* tvec);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

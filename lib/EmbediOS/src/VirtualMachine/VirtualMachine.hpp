@@ -9,8 +9,6 @@
 #include "../Allocator/Allocator.hpp"
 #include "../Internals/InternalFunctions.hpp"
 
-// #include "InternalFunctions.hpp"
-
 constexpr TypeMacros::u8 INTEGER_REGISTER_SPACE = 16;
 constexpr TypeMacros::u8 FLOAT_REGISTER_SPACE   = 16;
 constexpr TypeMacros::u8 INTEGER_OFFSET         = 1;
