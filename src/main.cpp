@@ -10,6 +10,13 @@
 define_task(check_input, params) { run_basic_loop_iteration(); }
 task check_input_task = make_task("input_task", check_input, nullptr, 0, MID_PRIORITY);
 
+define_task(blink, params) {
+    static bool ledOn = false;
+    digitalWrite(2, ledOn ? HIGH : LOW);
+    ledOn = !ledOn;
+}
+task blink_task = make_task("blink_task", blink, nullptr, 500, TOP_PRIORITY);
+
 event_loop* eloop;
 
 EmbediSerialSystemOutput out(DEFAULT_SERIAL);
@@ -26,6 +33,9 @@ void setup()
     eloop = create_event_loop();
 
     submit_task_to_loop(&check_input_task, eloop);
+    submit_task_to_loop(&blink_task, eloop);
+
+    pinMode(2, OUTPUT);
 }
 
 void loop()
@@ -33,6 +43,6 @@ void loop()
     loop_start(eloop);
 
     // Code shouldn't reach here at all costs, this means scheduler somehow exited which shouldn't happen
-    SystemIO::printf("[LOOP] FATAL ERROR: SCHEDULER EXITED, RESTARTING MACHINE NOW\n");
+    SystemIO::perror("[LOOP] FATAL ERROR: SCHEDULER EXITED, RESTARTING MACHINE NOW\n");
     ESP.restart();
 }

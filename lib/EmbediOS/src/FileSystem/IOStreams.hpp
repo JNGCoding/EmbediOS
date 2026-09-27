@@ -234,14 +234,14 @@ namespace SystemIO {
     TypeMacros::u32 fprintf(const char* streamName, const char* format, ...);
     TypeMacros::u32 fprintf(EmbediFileStream* stream, const char* format, ...);
 
-    TypeMacros::u32 fgets(const char* streamName, char* buffer, TypeMacros::u32 capSize);
-    TypeMacros::u32 fgets(EmbediFileStream* stream, char* buffer, TypeMacros::u32 capSize);
+    TypeMacros::u32 fgets(const char* streamName, char* buffer, TypeMacros::u32 capSize, const TypeMacros::u32 block_threshold = 10);
+    TypeMacros::u32 fgets(EmbediFileStream* stream, char* buffer, TypeMacros::u32 capSize, const TypeMacros::u32 block_threshold = 10);
 
     TypeMacros::u8 getchar();
 
     TypeMacros::u32 available();
 
-    TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize);
+    TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize, const TypeMacros::u32 block_threshold = 10);
     TypeMacros::u32 printf(const char* format, ...);
 
     void printchar(const TypeMacros::u8 c);

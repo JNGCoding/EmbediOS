@@ -161,7 +161,7 @@ void loop_start(event_loop* loop)
                     task_ran = true;
                 }
     
-                loop->current_task->start = __time_millis(loop->current_task->start);
+                loop->current_task->start = millis();
                 if (loop->current_task->skip) loop->current_task->skip = false;
 
                 if (task_ran)
@@ -170,7 +170,7 @@ void loop_start(event_loop* loop)
         }
 
         // inbuilt function provided by Espressif for accurate timings
-        ets_delay_us(1000);
+        delay(1);
     }
 }
 

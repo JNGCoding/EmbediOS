@@ -316,15 +316,16 @@ namespace SystemIO {
         return strsize;
     }
 
-    TypeMacros::u32 fgets(const char* streamName, char* buffer, TypeMacros::u32 capSize)
+    TypeMacros::u32 fgets(const char* streamName, char* buffer, TypeMacros::u32 capSize, const TypeMacros::u32 block_threshold)
     {
         EmbediFileStream* stream = __filetable.get_handle(streamName);
         if (stream == nullptr)
             return 0;
 
         TypeMacros::u32 bytesRead = 0;
+        TypeMacros::u32 start = millis();
 
-        while (bytesRead < capSize - 1)
+        while (bytesRead < capSize - 1 && millis() - start <= block_threshold)
         {
             if (stream->available() > 0)
             {
@@ -333,6 +334,7 @@ namespace SystemIO {
                     break;
 
                 buffer[bytesRead++] = character;
+                start = millis();
             }
         }
 
@@ -340,14 +342,15 @@ namespace SystemIO {
         return bytesRead;
     }
 
-    TypeMacros::u32 fgets(EmbediFileStream* stream, char* buffer, TypeMacros::u32 capSize)
+    TypeMacros::u32 fgets(EmbediFileStream* stream, char* buffer, TypeMacros::u32 capSize, const TypeMacros::u32 block_threshold)
     {
         if (stream == nullptr)
             return 0;
 
         TypeMacros::u32 bytesRead = 0;
+        TypeMacros::u32 start = millis();
 
-        while (bytesRead < capSize - 1)
+        while (bytesRead < capSize - 1 && millis() - start <= block_threshold)
         {
             if (stream->available() > 0)
             {
@@ -356,6 +359,7 @@ namespace SystemIO {
                     break;
 
                 buffer[bytesRead++] = character;
+                start = millis();
             }
         }
 
@@ -710,7 +714,7 @@ namespace SystemIO {
         return SystemIO::standardInp->read();
     }
 
-    TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize)
+    TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize, const TypeMacros::u32 block_threshold)
     {
         if (SystemIO::standardInp == nullptr)
             SystemIO::standardInp = __filetable.get_handle(SYSIN_NAME);
@@ -718,8 +722,9 @@ namespace SystemIO {
         assert(SystemIO::standardInp != nullptr && "[SystemIO::getchar()] FATAL ERROR: Standard Input is not defined");
 
         TypeMacros::u32 bytesRead = 0;
+        TypeMacros::u32 start = millis();
 
-        while (bytesRead < capSize - 1)
+        while (bytesRead < capSize - 1 && millis() - start <= block_threshold)
         {
             if (SystemIO::standardInp->available() > 0)
             {
@@ -728,6 +733,7 @@ namespace SystemIO {
                     break;
 
                 buffer[bytesRead++] = character;
+                start = millis();
             }
         }
 

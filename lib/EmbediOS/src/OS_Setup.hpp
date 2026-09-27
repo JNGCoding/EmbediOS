@@ -176,6 +176,8 @@ bool setup_sd_card()
 #ifdef COMPILE_WITH_SD_INITIALIZATION
     // Load the SdFat variables to intialize SdCard Streams
     return SDCardFileStream::card.begin(SD_CARD_CHIP_SELECT, SD_SCK_MHZ(8));
+#else
+    return false;
 #endif
 }
 

@@ -63,13 +63,13 @@ constexpr TypeMacros::u8 INTERRUPT_INPUT_MODE = INPUT;
 constexpr TypeMacros::u8 INTERRUPT_PIN_CHANGE_STYLE = RISING;
 
 // Initializes Display
-#define COMPILE_WITH_DISPLAY_INITIALIZATION
+// #define COMPILE_WITH_DISPLAY_INITIALIZATION
 #ifndef COMPILE_WITH_DISPLAY_INITIALIZATION
 #warning Compiling without Display Drivers, Functions removed
 #endif
 
 // SD CARD INITIALIZATION
-#define COMPILE_WITH_SD_INITIALIZATION
+// #define COMPILE_WITH_SD_INITIALIZATION
 #ifndef COMPILE_WITH_SD_INITIALIZATION
 #warning Compiling without SDCard initializations, Functions removed: lsdir, cd, start, dumpf, mkdir, rmdir, create, delete
 #endif
@@ -80,7 +80,7 @@ constexpr TypeMacros::u8 INTERRUPT_PIN_CHANGE_STYLE = RISING;
 #warning Compiling without WiFi initializations
 #endif
 
-#define COMPILE_WITH_BLUETOOTH_INITIALIZATION
+// #define COMPILE_WITH_BLUETOOTH_INITIALIZATION
 #ifndef COMPILE_WITH_BLUETOOTH_INITIALIZATION
 #warning Compiling without Bluetooth initializations
 #endif
@@ -94,10 +94,10 @@ constexpr TypeMacros::u8 INTERRUPT_PIN_CHANGE_STYLE = RISING;
 // driver for them, These things are already generalized by the Arduino Framework
 #define SUPPORTS_PWM
 #define SUPPORTS_ADC
-#define SUPPORTS_DAC
+// #define SUPPORTS_DAC
 
 // DEBUG FUNCTIONS
-#define INCLUDE_DEBUG_FUNCTIONS
+// #define INCLUDE_DEBUG_FUNCTIONS
 #ifndef INCLUDE_DEBUG_FUNCTIONS
 #warning Compiling without debug functions, Functions removed: freemem
 #endif
