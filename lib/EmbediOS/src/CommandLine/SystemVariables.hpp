@@ -154,14 +154,14 @@ struct SystemVariables
 
 TypeMacros::usize decode_string_to_number(const char* str)
 {
-    return str[0] << 56 |
-              str[1] << 48 |
-              str[2] << 40 |
-              str[3] << 32 |
-              str[4] << 24 |
-              str[5] << 16  |
-              str[6] << 8   |
-              str[7] & 0xFFFFFFFFFFFFFFFF;
+    return (static_cast<TypeMacros::usize>(str[0]) << 56 |
+              static_cast<TypeMacros::usize>(str[1]) << 48 |
+              static_cast<TypeMacros::usize>(str[2]) << 40 |
+              static_cast<TypeMacros::usize>(str[3]) << 32 |
+              static_cast<TypeMacros::usize>(str[4]) << 24 |
+              static_cast<TypeMacros::usize>(str[5]) << 16  |
+              static_cast<TypeMacros::usize>(str[6]) << 8   |
+              static_cast<TypeMacros::usize>(str[7])) & 0xFFFFFFFFFFFFFFFF;
 }
 
 void encode_number_to_string(TypeMacros::usize number, char* buf)
