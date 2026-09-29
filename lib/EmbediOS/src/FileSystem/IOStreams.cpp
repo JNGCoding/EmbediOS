@@ -822,6 +822,13 @@ namespace SystemIO {
                             SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                             count += length;
                         }
+                        else if (postfix == 'l')
+                        {
+                            long long int llarg = va_arg(args, long long int);
+                            const TypeMacros::u32 length = sprintf(smallBuffer, "%llu", llarg);
+                            SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                            count += length;
+                        }
                     }
 
                 }

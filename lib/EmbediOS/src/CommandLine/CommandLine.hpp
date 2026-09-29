@@ -133,7 +133,15 @@ struct CommandLine
                     return nullptr;
                 }
 
-                snprintf(this->loadedFunction.argv_storage[argIndex], ARG_LENGTH, varval->value);
+                if (varval->is_number)
+                {
+                    TypeMacros::i64 num = decode_string_to_number(varval->value);
+                    snprintf(this->loadedFunction.argv_storage[argIndex], ARG_LENGTH, "%lld", num);
+                }
+                else
+                {
+                    snprintf(this->loadedFunction.argv_storage[argIndex], ARG_LENGTH, varval->value);
+                }
             }
 
             this->loadedFunction.argv[argIndex] = this->loadedFunction.argv_storage[argIndex];
