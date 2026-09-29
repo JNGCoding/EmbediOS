@@ -54,6 +54,10 @@ constexpr TypeMacros::u32 Kb(double x) { return 1024 * x; }
 constexpr TypeMacros::u32 Mb(double x) { return 1024 * Kb(x); }
 constexpr TypeMacros::u64 Gb(double x) { return 1024 * Mb(x); }
 
+constexpr TypeMacros::u32 Kbps(double x) { return 1000 * x; }
+constexpr TypeMacros::u32 Mbps(double x) { return 1000 * Kbps(x); }
+constexpr TypeMacros::u32 Gbps(double x) { return 1000 * Mbps(x); }
+
 inline bool string_equals(const char* s1, const char* s2) { return strcmp(s1, s2) == 0; }
 
 constexpr bool is_space(const char ch)
