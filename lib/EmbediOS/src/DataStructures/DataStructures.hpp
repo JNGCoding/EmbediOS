@@ -1317,7 +1317,7 @@ public:
 
     // Get the element placed at `idx`
     // Return nullptr if `idx` is invalid
-    T* get(const TypeMacros::u32 idx)
+    const T* get(const TypeMacros::u32 idx) const
     {
         if (idx >= CAPACITY)
             return nullptr;
@@ -1375,8 +1375,13 @@ public:
         memset(this->buffer, 0, CAPACITY * sizeof(T));
     }
 
+    void objset(T obj)
+    {
+        memset(this->buffer, obj, CAPACITY * sizeof(T));
+    }
+
     // Get the underlying raw C buffer
-    T* get_buf() const
+    const T* get_buf() const
     {
         return this->buffer;
     }
@@ -1395,6 +1400,7 @@ private:
 public:
     EmbediQueue(T* buffer, const TypeMacros::u32 cap) : capacity(cap)
     {
+        assert(this->buf != nullptr && "[EmbediQueue::EmbediQueue(T*)] FATAL ERROR: BUFFER PROVIDED WAS NULL");
         this->buf = buffer;
     }
 

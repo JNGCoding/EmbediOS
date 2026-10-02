@@ -64,9 +64,24 @@ constexpr TypeMacros::u8 INTERRUPT_INPUT_MODE = INPUT;
 constexpr TypeMacros::u8 INTERRUPT_PIN_CHANGE_STYLE = RISING;
 
 // Initializes Display
-// #define COMPILE_WITH_DISPLAY_INITIALIZATION
+#define COMPILE_WITH_DISPLAY_INITIALIZATION
 #ifndef COMPILE_WITH_DISPLAY_INITIALIZATION
 #warning Compiling without Display Drivers, Functions removed
+#endif
+
+#ifdef COMPILE_WITH_DISPLAY_INITIALIZATION
+
+constexpr TypeMacros::u32 DISPLAY_WIDTH = 160;
+
+constexpr TypeMacros::u32 DISPLAY_HEIGHT = 128;
+
+// Pixel Color formats
+using RGB565 = TypeMacros::u16;
+using RGB888 = TypeMacros::u32;
+using RGBA   = TypeMacros::u32;
+
+using DisplayColor = TypeMacros::u16;
+
 #endif
 
 // SD CARD INITIALIZATION
