@@ -386,6 +386,10 @@ namespace SystemIO {
             if (*format == '%')
             {
                 format++;
+
+                if (*format == '\0')
+                    break;
+
                 if (*format == '%')
                 {
                     stream->write('%');
@@ -447,8 +451,37 @@ namespace SystemIO {
                             stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                             count += length;
                         }
-                    }
+                        else if (postfix == 'l')
+                        {
+                            char postpostfix = *(format + 1);
 
+                            if (is_space(postpostfix))
+                            {
+                                long long int llarg = va_arg(args, long long int);
+                                const TypeMacros::u32 length = sprintf(smallBuffer, "%lld", llarg);
+                                stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                count += length;
+                            }
+                            else
+                            {
+                                format++;
+                                if (postpostfix == 'u')
+                                {
+                                    unsigned long long int llarg = va_arg(args, unsigned long long int);
+                                    const TypeMacros::u32 length = sprintf(smallBuffer, "%llu", llarg);
+                                    stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                    count += length;
+                                }
+                                else if (postpostfix == 'd')
+                                {
+                                    long long int llarg = va_arg(args, long long int);
+                                    const TypeMacros::u32 length = sprintf(smallBuffer, "%lld", llarg);
+                                    stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                    count += length;
+                                }
+                            }
+                        }
+                    }
                 }
                 else if (*format == 'h')
                 {
@@ -456,7 +489,7 @@ namespace SystemIO {
                     if (is_space(postfix))
                     {
                         short sharg = static_cast<short>(va_arg(args, int));
-                        const TypeMacros::u32 length = sprintf(smallBuffer, "%ld", sharg);
+                        const TypeMacros::u32 length = sprintf(smallBuffer, "%hd", sharg);
                         stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                         count += length;
                     }
@@ -486,7 +519,7 @@ namespace SystemIO {
                     if (is_space(postfix))
                     {
                         char barg = static_cast<char>(va_arg(args, int));
-                        const TypeMacros::u32 length = sprintf(smallBuffer, "%hu", barg);
+                        const TypeMacros::u32 length = sprintf(smallBuffer, "%hhd", barg);
                         stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                         count += length;
                     }
@@ -496,14 +529,14 @@ namespace SystemIO {
                         if (postfix == 'd')
                         {
                             char barg = static_cast<char>(va_arg(args, int));
-                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhu", barg);
+                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhd", barg);
                             stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                             count += length;
                         }
                         else if (postfix == 'u')
                         {
                             unsigned char barg = static_cast<unsigned char>(va_arg(args, unsigned int));
-                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhd", barg);
+                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhu", barg);
                             stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                             count += length;
                         }
@@ -554,6 +587,10 @@ namespace SystemIO {
             if (*format == '%')
             {
                 format++;
+
+                if (*format == '\0')
+                    break;
+
                 if (*format == '%')
                 {
                     stream->write('%');
@@ -615,8 +652,37 @@ namespace SystemIO {
                             stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                             count += length;
                         }
-                    }
+                        else if (postfix == 'l')
+                        {
+                            char postpostfix = *(format + 1);
 
+                            if (is_space(postpostfix))
+                            {
+                                long long int llarg = va_arg(args, long long int);
+                                const TypeMacros::u32 length = sprintf(smallBuffer, "%lld", llarg);
+                                stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                count += length;
+                            }
+                            else
+                            {
+                                format++;
+                                if (postpostfix == 'u')
+                                {
+                                    unsigned long long int llarg = va_arg(args, unsigned long long int);
+                                    const TypeMacros::u32 length = sprintf(smallBuffer, "%llu", llarg);
+                                    stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                    count += length;
+                                }
+                                else if (postpostfix == 'd')
+                                {
+                                    long long int llarg = va_arg(args, long long int);
+                                    const TypeMacros::u32 length = sprintf(smallBuffer, "%lld", llarg);
+                                    stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                    count += length;
+                                }
+                            }
+                        }
+                    }
                 }
                 else if (*format == 'h')
                 {
@@ -624,7 +690,7 @@ namespace SystemIO {
                     if (is_space(postfix))
                     {
                         short sharg = static_cast<short>(va_arg(args, int));
-                        const TypeMacros::u32 length = sprintf(smallBuffer, "%ld", sharg);
+                        const TypeMacros::u32 length = sprintf(smallBuffer, "%hd", sharg);
                         stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                         count += length;
                     }
@@ -654,7 +720,7 @@ namespace SystemIO {
                     if (is_space(postfix))
                     {
                         char barg = static_cast<char>(va_arg(args, int));
-                        const TypeMacros::u32 length = sprintf(smallBuffer, "%hu", barg);
+                        const TypeMacros::u32 length = sprintf(smallBuffer, "%hhd", barg);
                         stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                         count += length;
                     }
@@ -664,14 +730,14 @@ namespace SystemIO {
                         if (postfix == 'd')
                         {
                             char barg = static_cast<char>(va_arg(args, int));
-                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhu", barg);
+                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhd", barg);
                             stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                             count += length;
                         }
                         else if (postfix == 'u')
                         {
                             unsigned char barg = static_cast<unsigned char>(va_arg(args, unsigned int));
-                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhd", barg);
+                            const TypeMacros::u32 length = sprintf(smallBuffer, "%hhu", barg);
                             stream->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
                             count += length;
                         }
@@ -761,6 +827,10 @@ namespace SystemIO {
             if (*format == '%')
             {
                 format++;
+
+                if (*format == '\0')
+                    break;
+
                 if (*format == '%')
                 {
                     SystemIO::standardOut->write('%');
@@ -824,13 +894,35 @@ namespace SystemIO {
                         }
                         else if (postfix == 'l')
                         {
-                            long long int llarg = va_arg(args, long long int);
-                            const TypeMacros::u32 length = sprintf(smallBuffer, "%llu", llarg);
-                            SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
-                            count += length;
+                            char postpostfix = *(format + 1);
+
+                            if (is_space(postpostfix))
+                            {
+                                long long int llarg = va_arg(args, long long int);
+                                const TypeMacros::u32 length = sprintf(smallBuffer, "%lld", llarg);
+                                SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                count += length;
+                            }
+                            else
+                            {
+                                format++;
+                                if (postpostfix == 'u')
+                                {
+                                    unsigned long long int llarg = va_arg(args, unsigned long long int);
+                                    const TypeMacros::u32 length = sprintf(smallBuffer, "%llu", llarg);
+                                    SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                    count += length;
+                                }
+                                else if (postpostfix == 'd')
+                                {
+                                    long long int llarg = va_arg(args, long long int);
+                                    const TypeMacros::u32 length = sprintf(smallBuffer, "%lld", llarg);
+                                    SystemIO::standardOut->write(reinterpret_cast<const TypeMacros::u8*>(smallBuffer), length);
+                                    count += length;
+                                }
+                            }
                         }
                     }
-
                 }
                 else if (*format == 'h')
                 {
