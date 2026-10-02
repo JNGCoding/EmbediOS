@@ -72,7 +72,7 @@ struct SystemVariables
     EmbediHashTable<SystemVariableName, SystemVariableValue, SVNComparator> variables;
 
     SystemVariables() :
-        variables(128, &basicAllocator)
+        variables(SYSVARS_HASHBUCKETS, &basicAllocator)
     {}
 
     bool create(const char* name)

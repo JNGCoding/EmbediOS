@@ -13,6 +13,7 @@
 
 #include "../TypeMacros.hpp"
 #include "../Allocator/Allocator.hpp"
+#include "../DataStructures/DataStructures.hpp"
 
 #ifdef __AVR__
 #undef getchar
@@ -50,71 +51,54 @@ constexpr TypeMacros::u32 NOT_BUFFERED = 0U;
 class EmbediFileStream
 {
 protected:
-    TypeMacros::u8* buffer = nullptr;
+    TypeMacros::u8 *readBuffer = nullptr, *writeBuffer = nullptr;
+    EmbediQueue<TypeMacros::u8> readQueue;
+    EmbediQueue<TypeMacros::u8> writeQueue;
+    const bool buffered;
 
-    // Queue Data Structure variables
-    TypeMacros::u32 writePtr = 0, readPtr = 0;
-    const TypeMacros::u32 queueSize;
-    TypeMacros::u32 dataInQueue = 0;
+    constexpr bool tx_ready()
+    { return this->writeBuffer != nullptr; }
 
-    bool errorFlag = false;
-
-    constexpr bool buffered()
-    { return this->queueSize != NOT_BUFFERED; }
-
-    constexpr bool buffer_ready()
-    { return this->buffered() && this->buffer != nullptr; }
+    constexpr bool rx_ready()
+    { return this->readBuffer != nullptr; }
 
     bool allocate_buffers()
     {
-        if (this->buffered())
-        {
-            this->buffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->queueSize));
-            return this->buffer != nullptr;
-        }
-        else return true;
+        this->writeBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->writeQueue.cap_size()));
+        this->readBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->readQueue.cap_size()));
+        return this->writeBuffer != nullptr && this->readBuffer != nullptr;
     }
 
     void destroy_buffers()
     {
-        if (this->buffered() && this->buffer != nullptr)
-        {
-            basicAllocator.destroy(this->buffer);
-            this->buffer = nullptr;  // Kill of the dangling pointer
-        }
+        if (this->writeBuffer != nullptr)
+            basicAllocator.destroy(this->writeBuffer);
+
+        if (this->readBuffer != nullptr)
+            basicAllocator.destroy(this->readBuffer);
+
+        this->writeBuffer = nullptr;
+        this->readBuffer = nullptr;
     }
 
-    bool push_byte(const TypeMacros::u8 data)
-    {
-        if (this->dataInQueue >= this->queueSize)
-            return false;
-
-        this->buffer[this->writePtr] = data;
-        this->writePtr = (this->writePtr + 1) % this->queueSize;
-
-        return true;
-    }
-
-    TypeMacros::u8 pop_byte()
-    {
-        if (this->dataInQueue == 0)
-        {
-            this->errorFlag = true;
-            return 0;
-        }
-        
-        TypeMacros::u8 data = this->buffer[this->readPtr];
-        this->readPtr = (this->readPtr + 1) % this->queueSize;
-        this->errorFlag = false;
-        
-        return data;
-    }
+    enum class ErrorCode : TypeMacros::u8;
+    ErrorCode error;
 
 public:
+    enum class ErrorCode : TypeMacros::u8
+    {
+        NO_ERROR,
+        WRITE_BUFFER_NULL,
+        READ_BUFFER_NULL,
+        READ_QUEUE_UNDERFLOW,
+        WRITE_QUEUE_OVERFLOW
+    };
+
     FileDescriptor descriptor = {0};
 
-    EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : queueSize(bufferSize)
-    {}
+    EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : buffered(bufferSize != NOT_BUFFERED), readQueue(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
+    {
+    }
 
     virtual ~EmbediFileStream()
     { this->close(); }
@@ -128,8 +112,14 @@ public:
     // it is printing to
     // `n` bytes are posted to the devices
     // It is blocking
-    virtual void post(TypeMacros::u32 n)
-    {}
+    virtual void post(const TypeMacros::u32 n = IO_POST_SPEED)
+    {
+        const TypeMacros::u32 toPost = embedi_min(this->writeQueue.size(), n);
+        for (TypeMacros::u32 i = 0; i < toPost; i++)
+            this->writeQueue.dequeue();
+
+        // We don't have anything to do here
+    }
 
     // This function specializes to do the actual hardware
     // activity of polling something from the device
@@ -137,14 +127,14 @@ public:
     // It is blocking
     virtual void poll()
     {
-        if (this->dataInQueue >= this->queueSize)
+        if (this->readQueue.size() >= this->readQueue.cap_size())
             return;
     }
 
     // Closes the file stream and frees the buffers allocated associated to that file
     virtual void close()
     {
-        if (this->buffered())
+        if (this->buffered)
         {
             this->flush();
             this->destroy_buffers();
@@ -157,9 +147,24 @@ public:
     // store data in memory for the sake of buffering and non - blocking behaviour of operating system
     virtual bool write(const TypeMacros::u8 _byte)
     {
-        if (this->buffer_ready())
-        { return this->push_byte(_byte); }
-        else return false;
+        if (this->tx_ready())
+        {
+            if (this->writeQueue.enqueue(_byte))
+            {
+                this->error = ErrorCode::NO_ERROR;
+                return true;
+            }
+            else
+            {
+                this->error = ErrorCode::WRITE_QUEUE_OVERFLOW;
+                return false;
+            }
+        }
+        else
+        {
+            this->error = ErrorCode::WRITE_BUFFER_NULL;
+            return false;
+        }
     }
     virtual TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size)
     {
@@ -173,34 +178,45 @@ public:
         return bytesWritten;
     }
     virtual TypeMacros::u32 print(const char* str)
-    {
-        return this->write(reinterpret_cast<const TypeMacros::u8*>(str), strlen(str));
-    }
+    { return this->write(reinterpret_cast<const TypeMacros::u8*>(str), strlen(str)); }
     virtual TypeMacros::u32 println(const char* str = "")
-    {
-        return this->print(str) + (this->write('\r') ? 1 : 0) + (this->write('\n') ? 1 : 0);
-    }
+    { return this->print(str) + (this->write('\r') ? 1 : 0) + (this->write('\n') ? 1 : 0); }
 
     // Flushes all the data to the input stream of the file
     virtual void flush()
     {
-        if (this->dataInQueue > 0)
+        if (!this->tx_ready())
         {
-            this->post(this->dataInQueue);
+            this->error = ErrorCode::WRITE_BUFFER_NULL;
+            return;
+        }
+
+        if (this->writeQueue.size() > 0)
+        {
+            this->post(this->writeQueue.size());
         }
     }
     
     // Reads one byte from the output stream of file
     virtual TypeMacros::u8 read()
     {
-        if (this->buffer_ready())
+        if (this->rx_ready())
         {
             // Just return the byte
             // pop_byte already sets the error flag
             // if byte is not present
-            return this->pop_byte();
+            TypeMacros::u8* s = this->readQueue.dequeue();
+            if (s == nullptr)
+            {
+                this->error = ErrorCode::READ_QUEUE_UNDERFLOW;
+                return 0;
+            }
+
+            this->error = ErrorCode::NO_ERROR;
+            return *s;
         }
 
+        this->error = ErrorCode::READ_BUFFER_NULL;
         return 0;
     }
     virtual TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size)
@@ -234,7 +250,16 @@ public:
     // Returns the no. of available readable bytes in the read buffer
     virtual TypeMacros::u32 available()
     {
-        return this->dataInQueue;
+        if (this->rx_ready())
+        {
+            this->error = ErrorCode::NO_ERROR;
+            return this->readQueue.size();
+        }
+        else
+        {
+            this->error = ErrorCode::READ_BUFFER_NULL;
+            return 0;
+        }
     }
 };
 
@@ -259,6 +284,14 @@ struct FileTable
     // Returns an EmbediFileStream* from the buffer referenced by its name
     // stored in it's descriptor
     EmbediFileStream* get_handle(const char* streamName);
+
+    // Default Post all the handles currently present in the
+    // system's FileTable
+    void post_all_handles();
+
+    // Default Poll all the handles currently present in the
+    // system's FileTable
+    void poll_all_handles();
 };
 
 // This is the list that will be handled through-out the filespace
@@ -269,8 +302,8 @@ extern FileTable& __filetable;
 // it is made because at a time, it is a must to add
 // sysout, sysin, syserr to all streams first for maintaining consistency
 struct EmbediDummySystemError : public EmbediFileStream
-{    
-    EmbediDummySystemError() : EmbediFileStream(0)
+{
+    EmbediDummySystemError() : EmbediFileStream(NOT_BUFFERED)
     { this->descriptor = {SYSERR_NAME, "", READ | WRITE}; }
 
     bool write(const TypeMacros::u8 _byte) override { return false; }

@@ -1,7 +1,7 @@
 #include "WiredConnectivity.hpp"
 
 // Standard IO Stream implementation
-EmbediSerialSystemOutput::EmbediSerialSystemOutput(TypeMacros::u32 index)
+EmbediSerialSystemOutput::EmbediSerialSystemOutput(TypeMacros::u32 index) : EmbediFileStream(NOT_BUFFERED)
 {
     if (index == 0)      { serial = Serial; }
     else if (index == 1) { serial = Serial2; }
@@ -26,7 +26,7 @@ void EmbediSerialSystemOutput::flush()
     Serial.flush();
 }
 
-EmbediSerialSystemInput::EmbediSerialSystemInput(TypeMacros::u32 index)
+EmbediSerialSystemInput::EmbediSerialSystemInput(TypeMacros::u32 index) : EmbediFileStream(NOT_BUFFERED)
 {
     if (index == 0)      { this->serial = Serial; }
     else if (index == 1) { this->serial = Serial2; }

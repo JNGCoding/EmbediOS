@@ -1400,12 +1400,19 @@ private:
 public:
     EmbediQueue(T* buffer, const TypeMacros::u32 cap) : capacity(cap)
     {
-        assert(this->buf != nullptr && "[EmbediQueue::EmbediQueue(T*)] FATAL ERROR: BUFFER PROVIDED WAS NULL");
+        this->buf = buffer;
+    }
+
+    void set_buffer(T* buffer)
+    {
         this->buf = buffer;
     }
 
     bool enqueue(const T& element)
     {
+        if (this->buf == nullptr)
+            return false;
+
         if (this->is_full())
             return false;
 
@@ -1418,6 +1425,9 @@ public:
 
     T* dequeue()
     {
+        if (this->buf == nullptr)
+            return nullptr;
+
         if (this->is_empty())
             return nullptr;
 
@@ -1430,6 +1440,9 @@ public:
 
     const TypeMacros::u32 size() const
     {
+        if (this->buf == nullptr)
+            return 0;
+
         return this->count;
     }
 
@@ -1445,7 +1458,7 @@ public:
 
     const bool is_full() const
     {
-        return this->size() >= this->capacity;
+        return this->size() >= this->cap_size();
     }
 };
 

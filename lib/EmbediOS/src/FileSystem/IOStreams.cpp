@@ -64,6 +64,18 @@ EmbediFileStream* FileTable::get_handle(const char* streamName)
     return nullptr;
 }
 
+void FileTable::post_all_handles()
+{
+    for (TypeMacros::u32 i = 0; i < this->count; i++)
+        this->fileHandles[i]->post();
+}
+
+void FileTable::poll_all_handles()
+{
+    for (TypeMacros::u32 i = 0; i < this->count; i++)
+        this->fileHandles[i]->poll();
+}
+
 // SDCard File Stream implementation
 
 // This implementation just provides a String view of the original string

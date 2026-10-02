@@ -6,7 +6,7 @@ BluetoothSerial __Internal_BTSerial;
 EmbediBluetoothConfig __Internal_config = {0};
 bool __Internal_BluetoothActivated = false;
 
-EmbediBluetoothSerialOutput::EmbediBluetoothSerialOutput()
+EmbediBluetoothSerialOutput::EmbediBluetoothSerialOutput() : EmbediFileStream(NOT_BUFFERED)
 {
     this->descriptor =
     {
@@ -37,7 +37,7 @@ void EmbediBluetoothSerialOutput::flush()
     __Internal_BTSerial.flush();
 }
 
-EmbediBluetoothSerialInput::EmbediBluetoothSerialInput()
+EmbediBluetoothSerialInput::EmbediBluetoothSerialInput() : EmbediFileStream(NOT_BUFFERED)
 {
     this->descriptor =
     {
