@@ -26,11 +26,6 @@ TypeMacros::memptr EmbediBasicAllocator::reshape(TypeMacros::memptr mem, TypeMac
     else return nullptr;
 }
 
-void EmbediBasicAllocator::dump(const char* streamName)
-{
-    SystemIO::fprintf(streamName, "Basic Allocator have no proper dump() method");
-}
-
 EmbediBasicAllocator basicAllocator;
 
 // ------------------------------ ARENA ALLOCATOR ------------------------------
@@ -83,10 +78,7 @@ TypeMacros::memptr EmbediArenaAllocator::alloc(TypeMacros::u32 size)
     if (this->numBlocks == 0)
     {
         if (!this->arena_alloc_block())
-        {
-            SystemIO::perror("[EmbediArenaAllocator::alloc(TypeMacros::u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
-            return nullptr;
-        }
+        { return nullptr; }
     }
 
     if (size > this->blockSize)
@@ -99,10 +91,7 @@ TypeMacros::memptr EmbediArenaAllocator::alloc(TypeMacros::u32 size)
     if ((alignedPtr + size) > this->blockSize)
     {
         if (!this->arena_alloc_block())
-        {
-            SystemIO::perror("[EmbediArenaAllocator::alloc(TypeMacros::u32)] ERROR: FAILED TO ALLOCATE MEMORY FOR NEW BLOCK");
-            return nullptr;
-        }
+        { return nullptr; }
 
         TypeMacros::u32 alignedPtr = align_up(this->allocPointer);
     }
@@ -172,18 +161,6 @@ void EmbediArenaAllocator::arena_free()
     }
 }
 
-void EmbediArenaAllocator::dump(const char* streamName)
-{
-    SystemIO::fprintf(streamName, "EmbediArenaAllocator{\n\tblock size = %u\ntotal blocks = %u\n\n", this->blockSize, this->numBlocks);
-    if (this->blocks != nullptr)
-    {
-        SystemIO::fprintf(streamName, "blocks:\n");
-        for (TypeMacros::u32 i = 0; i < this->numBlocks; i++)
-            SystemIO::fprintf(streamName, "\tblock{%u}: %p\n", i, this->blocks[i]);
-    }
-    SystemIO::fprintf(streamName, "}\n");
-}
-
 // ------------------------------ LINEAR ALLOCATOR ------------------------------
 EmbediLinearAllocator::EmbediLinearAllocator(TypeMacros::u8* buf, TypeMacros::u32 cap_size) : cap(cap_size)
 {
@@ -218,12 +195,4 @@ TypeMacros::memptr EmbediLinearAllocator::reshape(TypeMacros::memptr mem, TypeMa
 void EmbediLinearAllocator::buffer_free()
 {
     this->sp = 0;
-}
-
-void EmbediLinearAllocator::dump(const char* streamName)
-{
-    SystemIO::fprintf(streamName, "EmbediLinearAllocator{\n\t");
-    for (TypeMacros::u32 i = 0; i < embedi_min(64UL, this->cap); i++)
-        SystemIO::fprintf(streamName, "%u\n", this->buffer[i]);
-    SystemIO::fprintf(streamName, "}");
 }

@@ -2,6 +2,7 @@
 #define __EMBEDI_TYPE_MACROS_HPP__
 
 #include <stdint.h>
+#include <string.h>
 
 #ifndef __AVR__
 #include <assert.h>

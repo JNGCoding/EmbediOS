@@ -52,7 +52,7 @@ class EmbediFileStream
 {
 protected:
     TypeMacros::u8 *readBuffer = nullptr, *writeBuffer = nullptr;
-    EmbediQueue<TypeMacros::u8> readQueue;
+    EmbediRingBuffer<TypeMacros::u8> readRingBuffer;
     EmbediQueue<TypeMacros::u8> writeQueue;
     const bool buffered;
 
@@ -65,7 +65,11 @@ protected:
     bool allocate_buffers()
     {
         this->writeBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->writeQueue.cap_size()));
-        this->readBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->readQueue.cap_size()));
+        this->readBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->writeQueue.cap_size()));
+
+        this->writeQueue.set_buffer(this->writeBuffer);
+        this->readRingBuffer.set_buffer(this->readBuffer);
+
         return this->writeBuffer != nullptr && this->readBuffer != nullptr;
     }
 
@@ -79,10 +83,10 @@ protected:
 
         this->writeBuffer = nullptr;
         this->readBuffer = nullptr;
-    }
 
-    enum class ErrorCode : TypeMacros::u8;
-    ErrorCode error;
+        this->writeQueue.set_buffer(nullptr);
+        this->readRingBuffer.set_buffer(nullptr);
+    }
 
 public:
     enum class ErrorCode : TypeMacros::u8
@@ -90,13 +94,17 @@ public:
         NO_ERROR,
         WRITE_BUFFER_NULL,
         READ_BUFFER_NULL,
-        READ_QUEUE_UNDERFLOW,
+        READ_RINGBUFFER_UNDERFLOW,
         WRITE_QUEUE_OVERFLOW
     };
 
+private:
+    ErrorCode error;
+
+public:
     FileDescriptor descriptor = {0};
 
-    EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : buffered(bufferSize != NOT_BUFFERED), readQueue(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
+    EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : buffered(bufferSize != NOT_BUFFERED), readRingBuffer(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
     {
     }
 
@@ -105,7 +113,19 @@ public:
 
     // Opens the file stream and allocates the buffers
     virtual bool open()
-    { return false; }
+    { 
+        return false;
+    }
+
+    // Closes the file stream and frees the buffers allocated associated to that file
+    virtual void close()
+    {
+        if (this->buffered)
+        {
+            this->flush();
+            this->destroy_buffers();
+        }
+    }
 
     // This function specializes to do the actual hardware
     // activity of posting something to the device
@@ -126,20 +146,7 @@ public:
     // it is reading from
     // It is blocking
     virtual void poll()
-    {
-        if (this->readQueue.size() >= this->readQueue.cap_size())
-            return;
-    }
-
-    // Closes the file stream and frees the buffers allocated associated to that file
-    virtual void close()
-    {
-        if (this->buffered)
-        {
-            this->flush();
-            this->destroy_buffers();
-        }
-    }
+    {}
 
     // Writes some data to the input stream of the file
 
@@ -205,10 +212,10 @@ public:
             // Just return the byte
             // pop_byte already sets the error flag
             // if byte is not present
-            TypeMacros::u8* s = this->readQueue.dequeue();
+            TypeMacros::u8* s = this->readRingBuffer.pop();
             if (s == nullptr)
             {
-                this->error = ErrorCode::READ_QUEUE_UNDERFLOW;
+                this->error = ErrorCode::READ_RINGBUFFER_UNDERFLOW;
                 return 0;
             }
 
@@ -253,7 +260,7 @@ public:
         if (this->rx_ready())
         {
             this->error = ErrorCode::NO_ERROR;
-            return this->readQueue.size();
+            return this->readRingBuffer.size();
         }
         else
         {

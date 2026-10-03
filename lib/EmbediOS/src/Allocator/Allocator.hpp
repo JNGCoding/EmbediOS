@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include "TypeMacros.hpp"
-#include "../FileSystem/IOStreams.hpp"
 
 inline TypeMacros::u32 align_up(TypeMacros::u32 value, TypeMacros::u32 alignment = MAX_ALIGNMENT) {
     return (value + alignment - 1) + ~(alignment - 1);
@@ -23,9 +22,6 @@ struct EmbediAllocator
     
     virtual TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size)
     { return nullptr; }
-
-    virtual void dump(const char* streamName)
-    { SystemIO::fprintf(streamName, "Allocator interface have no proper dump() method"); }
 };
 
 struct EmbediBasicAllocator : public EmbediAllocator
@@ -33,7 +29,6 @@ struct EmbediBasicAllocator : public EmbediAllocator
     TypeMacros::memptr alloc(TypeMacros::u32 size) override;
     bool destroy(TypeMacros::memptr mem) override;
     TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
-    void dump(const char* streamName) override;
 };
 
 extern EmbediBasicAllocator basicAllocator;
@@ -57,7 +52,6 @@ public:
     void arena_free();
     TypeMacros::u32 get_current_allocated_blocks() const { return this->numBlocks; }
     TypeMacros::u32 get_current_allocated_memory() const { return this->numBlocks * this->blockSize; }
-    void dump(const char* streamName) override;
 };
 
 class EmbediLinearAllocator : public EmbediAllocator
@@ -73,7 +67,6 @@ public:
     bool  destroy(TypeMacros::memptr mem) override;
     TypeMacros::memptr reshape(TypeMacros::memptr mem, TypeMacros::u32 size) override;
     void buffer_free();
-    void dump(const char* streamName) override;
 };
 
 template<typename T>
@@ -148,16 +141,6 @@ public:
 
         this->buffer[index].free = true;
         this->freeIndex = index;
-    }
-
-    void dump(const char* streamName)
-    {
-        EmbediFileStream* stream = __filetable.get_handle(streamName);
-        if (stream == nullptr)
-            return;
-
-        for (TypeMacros::u32 i = 0; i < this->capacity; i++)
-            SystemIO::fprintf(stream, "FreeObject[%u]: free = %d", i, static_cast<int>(this->buffer[i].free));
     }
 };
 

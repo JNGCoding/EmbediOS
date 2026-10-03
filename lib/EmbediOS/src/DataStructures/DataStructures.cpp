@@ -15,10 +15,7 @@ EmbediString::EmbediString(EmbediAllocator* _allocator)
 
     this->data = static_cast<char*>(this->allocator->alloc(1));
     if (this->data == nullptr)
-    {
-        SystemIO::perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
-        return;
-    }
+    { return; }
 
     this->data[0] = '\0';
     this->capacity = 1;
@@ -30,17 +27,12 @@ EmbediString::EmbediString(const char* _data, EmbediAllocator* _allocator)
 
     if (_data == nullptr)
     {
-        SystemIO::perror("[EmbediString::EmbediString(const char*)] WARNING: NULLPTR WAS PASSED TO THE ARGUMENTS, CALLING DIFFERENT CONSTRUCTOR");
-
         // EmbediString::EmbediString() body
         this->allocator = _allocator;
 
         this->data = static_cast<char*>(this->allocator->alloc(1));
         if (this->data == nullptr)
-        {
-            SystemIO::perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
-            return;
-        }
+        { return; }
 
         this->data[0] = '\0';
         this->capacity = 1;
@@ -55,10 +47,7 @@ EmbediString::EmbediString(const char* _data, EmbediAllocator* _allocator)
     {
         this->data = static_cast<char*>(this->allocator->alloc(1));
         if (this->data == nullptr)
-        {
-            SystemIO::perror("[EmbediString::EmbediString()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
-            return;
-        }
+        { return; }
 
         this->data[0] = '\0';
         this->capacity = 1;
@@ -67,10 +56,7 @@ EmbediString::EmbediString(const char* _data, EmbediAllocator* _allocator)
 
     this->data = static_cast<char*>(this->allocator->alloc(strsize + 1));
     if (this->data == nullptr)
-    {
-        SystemIO::perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
-        return;
-    }
+    { return; }
 
     this->capacity = strsize + 1;
     this->len = strsize;
@@ -85,10 +71,7 @@ EmbediString::EmbediString(const EmbediString& str, EmbediAllocator* _allocator)
 
     this->data = static_cast<char*>(this->allocator->alloc(str.len + 1));
     if (this->data == nullptr)
-    {
-        SystemIO::perror("[EmbediString::EmbediString(const char*)] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
-        return;
-    }
+    { return; }
 
     this->capacity = str.len + 1;
     this->len = str.len;

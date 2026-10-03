@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "TypeMacros.hpp"
-#include "../FileSystem/IOStreams.hpp"
 #include "../Allocator/Allocator.hpp"
 
 // A generic pair class
@@ -541,8 +540,15 @@ public:
     // `cap_size` maximum capacity of the stack
     explicit EmbediStack(T* buf, const TypeMacros::u32 cap_size) : capacity(cap_size)
     {
-        assert(this->buffer != nullptr && "[EmbediStack::EmbediStack(T*, TypeMacros::u32)] FATAL ERROR: BUFFER PASSED WAS NULL");
         this->buffer = buf;
+    }
+
+    // Changes the internal buffer to `buf` and resets the internal
+    // information of the data structure
+    void set_buffer(T* buf)
+    {
+        this->buffer = buf;
+        this->count = 0;
     }
 
     // Copies another stack
@@ -551,6 +557,9 @@ public:
     // Returns the amount of elements the instance was successfully able to copy
     TypeMacros::u32 copy(EmbediStack& other, const TypeMacros::u32 cpy_size) const
     {
+        if (this->buffer == nullptr)
+            return 0;
+
         this->clear();
 
         for (TypeMacros::u32 i = 0; i < cpy_size && i < other.count && i < this->count; i++)
@@ -566,6 +575,9 @@ public:
     // Returns true if no Stack Overflow error occured else false
     bool push(const T& element)
     {
+        if (this->buffer == nullptr)
+            return false;
+    
         if (this->count >= this->capacity)
             return false;
 
@@ -576,6 +588,9 @@ public:
     // Returns the pointer of the object stored at the head of the stack and decrements the stack pointer, if size = 0 then returns nullptr
     T* pop()
     {
+        if (this->buffer == nullptr)
+            return nullptr;
+
         if (this->count <= 0)
             return nullptr;
 
@@ -585,6 +600,9 @@ public:
     // Returns the pointer of the object stored at the head of the stack, if size = 0 then returns nullptr
     T* peek()
     {
+        if (this->buffer == nullptr)
+            return nullptr;
+
         if (this->count <= 0)
             return nullptr;
 
@@ -598,9 +616,30 @@ public:
     }
 
     // Returns the size of the stack
-    TypeMacros::u32 size() const
+    const TypeMacros::u32 size() const
     {
+        if (this->buffer == nullptr)
+            return 0;
+
         return this->count;
+    }
+
+    // Returns the maximum capacity of the stack
+    const TypeMacros::u32 cap_size() const
+    {
+        return this->capacity;
+    }
+
+    // Returns true if stack is empty else false
+    const bool is_empty() const
+    {
+        return this->size() == 0;
+    }
+
+    // Returns true if stack is full else false
+    const bool is_full() const
+    {
+        return this->size() >= this->cap_size();
     }
 
     // Returns a constant pointer to the internal stack buffer
@@ -613,6 +652,9 @@ public:
     // `other` the second EmbediStack instance for the scan
     bool equals(const EmbediStack& other)
     {
+        if (this->buffer == nullptr)
+            return false;
+
         if (this->count != other.count)
             return false;
 
@@ -649,11 +691,7 @@ public:
         this->allocator = _allocator;
         this->buffer = static_cast<T*>(this->allocator->alloc(sizeof(T) * EmbediDynamicStack::PRE_ALLOCATE_DURING_CONSTRUCTION));
 
-        if (this->buffer == nullptr)
-        {
-            SystemIO::perror("[EmbediDynamicStack::EmbediDynamicStack()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
-            return;
-        }
+        assert(this->buffer != nullptr && "[EmbediDynamicStack::EmbediDynamicStack()] FATAL ERROR: OUT OF MEMORY, BUFFER ALLOCATED IS NULL");
 
         this->capacity = EmbediDynamicStack::PRE_ALLOCATE_DURING_CONSTRUCTION;
     }
@@ -792,13 +830,25 @@ public:
     // `cap_size` Size of the operating buffer
     explicit EmbediRingBuffer(T* buf, const TypeMacros::u32 cap_size) : capacity(cap_size)
     {
-        assert(buf != nullptr && "[EmbediRingBuffer::EmbediRingBuffer] FATAL ERROR: FAILED TO ALLOCATE BUFFER");
         this->buffer = buf;
+    }
+
+    // Changes the internal buffer to `buf` and resets the internal
+    // information of the data structure
+    void set_buffer(T* buf)
+    {
+        this->buffer = buf;
+        this->appendPtr = 0;
+        this->readPtr = 0;
+        this->count = 0;
     }
 
     // Pushes an element on the buffer of the ring buffer
     void push(const T& element)
     {
+        if (this->buffer == nullptr)
+            return;
+
         this->buffer[this->appendPtr] = element;
         this->appendPtr = (this->appendPtr + 1) % this->capacity;
 
@@ -811,6 +861,9 @@ public:
     // Pops out an element on the buffer if size > 0 and returns its pointer, if size <= 0 then returns nullptr
     T* pop()
     {
+        if (this->buffer == nullptr)
+            return nullptr;
+
         if (this->count == 0)
             return nullptr;
 
@@ -824,6 +877,9 @@ public:
     // Returns the pointer to the object in the buffer at readPtr
     T* peek()
     {
+        if (this->buffer == nullptr)
+            return nullptr;
+
         if (this->count == 0)
             return nullptr;
 
@@ -841,6 +897,9 @@ public:
     // Returns the size of the ring buffer
     TypeMacros::u32 size() const
     {
+        if (this->buffer == nullptr)
+            return 0;
+
         return this->count;
     }
 
@@ -849,6 +908,9 @@ public:
     // Returns the amount of elements the instance was successfully able to copy
     TypeMacros::u32 copy(const EmbediRingBuffer& other)
     {
+        if (this->buffer == nullptr)
+            return 0;
+
         if (this->capacity != other.capacity)
             return 0;
 
@@ -884,12 +946,7 @@ public:
         this->allocator = _allocator;
         this->buffer = static_cast<T*>(this->allocator->alloc(sizeof(T) * EmbediVector::PRE_ALLOCATE_DURING_CONSTRUCTION));
 
-        if (this->buffer == nullptr)
-        {
-            SystemIO::perror("[EmbediVector::EmbediVector()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
-            this->capacity = 0;
-            return;
-        }
+        assert(this->buffer != nullptr && "[EmbediVector::EmbediVector()] ERROR: FAILED TO ALLOCATE MEMORY FROM ALLOCATOR");
 
         this->capacity = EmbediVector::PRE_ALLOCATE_DURING_CONSTRUCTION;
     }
@@ -1398,16 +1455,24 @@ private:
     TypeMacros::u32 count = 0, readptr = 0, writeptr = 0;
 
 public:
+    // Initializes the queue with `buffer` and its capacity a.k.a `cap`
     EmbediQueue(T* buffer, const TypeMacros::u32 cap) : capacity(cap)
     {
         this->buf = buffer;
     }
 
+    // Changes the internal buffer to `buf` and resets the internal
+    // information of the data structure
     void set_buffer(T* buffer)
     {
         this->buf = buffer;
+        this->count = 0;
+        this->readptr = 0;
+        this->writeptr = 0;
     }
 
+    // Pushes an `element` in the internal buffers
+    // Returns true if the operation was successful else false
     bool enqueue(const T& element)
     {
         if (this->buf == nullptr)
@@ -1423,6 +1488,8 @@ public:
         return true;
     }
 
+    // Pops a value in the internal buffers and returns it
+    // Returns the value by pointer if the operation was successful else nullptr
     T* dequeue()
     {
         if (this->buf == nullptr)
@@ -1438,6 +1505,15 @@ public:
         return element;
     }
 
+    // Clears the internal counters
+    void clear()
+    {
+        this->writeptr = 0;
+        this->readptr = 0;
+        this->count = 0;
+    }
+
+    // Returns the size of the queue
     const TypeMacros::u32 size() const
     {
         if (this->buf == nullptr)
@@ -1446,16 +1522,19 @@ public:
         return this->count;
     }
 
+    // Returns the maximum capacity of the queue
     const TypeMacros::u32 cap_size() const
     {
         return this->capacity;
     }
 
+    // Returns true if queue is empty else false
     const bool is_empty() const
     {
         return this->size() == 0;
     }
 
+    // Return true if queue is full else false
     const bool is_full() const
     {
         return this->size() >= this->cap_size();
