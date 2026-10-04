@@ -6,61 +6,50 @@ BluetoothSerial __Internal_BTSerial;
 EmbediBluetoothConfig __Internal_config = {0};
 bool __Internal_BluetoothActivated = false;
 
-EmbediBluetoothSerialOutput::EmbediBluetoothSerialOutput() : EmbediFileStream(NOT_BUFFERED)
+EmbediBluetoothStream::EmbediBluetoothStream(const TypeMacros::u32 bufferSize) : EmbediFileStream(bufferSize)
 {
-    this->descriptor =
-    {
-        SYSOUT_NAME,
-        "Bluetooth/Serial/",
-        WRITE
+    this->descriptor = {
+        "EmbediBluetoothDuplexStream",
+        ".sys/bluetooth/io/serial_stream",
+        WRITE | READ
     };
 }
 
-EmbediBluetoothSerialOutput::~EmbediBluetoothSerialOutput()
+bool EmbediBluetoothStream::open()
 {
-    this->flush();
+    return this->allocate_buffers();
 }
 
-bool EmbediBluetoothSerialOutput::write(const TypeMacros::u8 _byte)
+void EmbediBluetoothStream::post(const TypeMacros::u32 n)
 {
-    if (!__Internal_BluetoothActivated)
-        return false;
-
-    return __Internal_BTSerial.write(_byte) != 0;
-}
-
-void EmbediBluetoothSerialOutput::flush()
-{
-    if (!__Internal_BluetoothActivated)
-        return;
-
-    __Internal_BTSerial.flush();
-}
-
-EmbediBluetoothSerialInput::EmbediBluetoothSerialInput() : EmbediFileStream(NOT_BUFFERED)
-{
-    this->descriptor =
+    if (this->tx_ready() && __Internal_BluetoothActivated)
     {
-        SYSIN_NAME,
-        "Bluetooth/Serial/",
-        READ
-    };
+        const TypeMacros::u32 toPost = embedi_min(this->writeQueue.size(), n);
+        for (TypeMacros::u32 i = 0; i < toPost; i++)
+        {
+            TypeMacros::u8* data = this->writeQueue.dequeue();
+            if (data == nullptr)
+            {
+                this->error = ErrorCode::NULLPTR_ENCOUNTERED;
+            }
+            else
+            {
+                this->error = ErrorCode::NO_ERROR;
+                __Internal_BTSerial.write(*data);
+            }
+        }
+    }
+    else this->error = ErrorCode::WRITE_BUFFER_NULL;
+
 }
 
-TypeMacros::u8 EmbediBluetoothSerialInput::read()
+void EmbediBluetoothStream::poll()
 {
-    if (!__Internal_BluetoothActivated)
-        return 0;
-
-    return __Internal_BTSerial.read();
-}
-
-TypeMacros::u32 EmbediBluetoothSerialInput::available()
-{
-    if (!__Internal_BluetoothActivated)
-        return 0;
-
-    return __Internal_BTSerial.available();
+    if (this->rx_ready() && __Internal_BluetoothActivated)
+    {
+        while (__Internal_BTSerial.available() > 0)
+            this->readRingBuffer.push(__Internal_BTSerial.read());
+    } else this->error = ErrorCode::READ_BUFFER_NULL;
 }
 
 #endif

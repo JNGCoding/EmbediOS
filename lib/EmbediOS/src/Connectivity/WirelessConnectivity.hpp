@@ -248,21 +248,13 @@ struct EmbediBluetoothManager
     }
 };
 
-struct EmbediBluetoothSerialOutput : public EmbediFileStream
+class EmbediBluetoothStream : public EmbediFileStream
 {
-    EmbediBluetoothSerialOutput();
-    ~EmbediBluetoothSerialOutput();
-
-    bool write(const TypeMacros::u8 _byte) override;
-    void flush() override;
-};
-
-struct EmbediBluetoothSerialInput : public EmbediFileStream
-{
-    EmbediBluetoothSerialInput();
-
-    TypeMacros::u8 read() override;
-    TypeMacros::u32 available() override;
+public:
+    EmbediBluetoothStream(const TypeMacros::u32 bufferSize);
+    bool open() override;
+    void post(const TypeMacros::u32 n = IO_POST_SPEED) override;
+    void poll() override;
 };
 
 #endif

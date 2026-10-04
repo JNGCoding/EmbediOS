@@ -2,12 +2,11 @@
 
 #include <OS_Setup.hpp>
 #include <Connectivity/WiredConnectivity.hpp>
+#include <Connectivity/WirelessConnectivity.hpp>
 
 #include <EventLoop/event_loop.h>
 #include <EventLoop/event_queue.h>
 #include <EventLoop/tasks.h>
-
-#include "MySetup.hpp"
 
 define_task(check_input, params) { run_basic_loop_iteration(); }
 task check_input_task = make_task("input_task", check_input, nullptr, 0, MID_PRIORITY);
@@ -20,15 +19,14 @@ task poll_handles_task = make_task("poll_handles_task", poll_handles, nullptr, 1
 
 event_loop* eloop;
 
-EmbediUARTStream uartStream(DEFAULT_SERIAL, 512);
+EmbediBluetoothStream bleStream(512);
 EmbediDummySystemError err;
 
 void setup()
 {
-    EmbediSerialManager::init_serial(DEFAULT_SERIAL, EmbediSerialConfig{115200, SERIAL_8N1, -1, -1, false});
-    while (!Serial);
-    uartStream.open();
-    setup_streams(&uartStream, &uartStream, &err);
+    EmbediBluetoothManager::init_bluetooth(EmbediBluetoothConfig{"EmbediOS_SerialInput"});
+    bleStream.open();
+    setup_streams(&bleStream, &bleStream, &err);
     
     load_starter_functions();
 
@@ -40,17 +38,7 @@ void setup()
 
     OS.systemVariables.create("VERSION", VERSION);
 
-    pinMode(5, INPUT_PULLUP);
     pinMode(2, OUTPUT);
-
-    Serial.printf("task_vector(size = %zu) {", eloop->tasks->size);
-
-    for (size_t i = 0; i < eloop->tasks->size; i++)
-    {
-        Serial.printf("%s. ", eloop->tasks->vector[i]->name);
-    }
-
-    Serial.printf("}");
 }
 
 void loop()

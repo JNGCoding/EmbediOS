@@ -101,7 +101,7 @@ using DisplayColor = TypeMacros::u16;
 #warning Compiling without WiFi initializations
 #endif
 
-// #define COMPILE_WITH_BLUETOOTH_INITIALIZATION
+#define COMPILE_WITH_BLUETOOTH_INITIALIZATION
 #ifndef COMPILE_WITH_BLUETOOTH_INITIALIZATION
 #warning Compiling without Bluetooth initializations
 #endif
