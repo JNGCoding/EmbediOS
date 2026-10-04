@@ -30,9 +30,9 @@ constexpr TypeMacros::u8 WRITE  = 1 << 1;
 constexpr TypeMacros::u8 APPEND = 1 << 2 | WRITE;
 
 // Name of System output, input and error streams respectively
-constexpr const char* SYSOUT_NAME = "stdout";
-constexpr const char* SYSIN_NAME =  "stdin";
-constexpr const char* SYSERR_NAME = "stderr";
+constexpr TypeMacros::u8 SYSOUT_INDEX = 0;
+constexpr TypeMacros::u8 SYSIN_INDEX  = 1;
+constexpr TypeMacros::u8 SYSERR_INDEX = 2;
 
 // This is an identifier object used for getting any filestream from FileTable
 // instance, it contains credentials
@@ -292,6 +292,10 @@ struct FileTable
     // stored in it's descriptor
     EmbediFileStream* get_handle(const char* streamName);
 
+    // Returns and EmbediFileStream* from the buffer referenced by its path
+    // stored in it's descriptor
+    EmbediFileStream* get_handle_by_path(const char* streamPath);
+
     // Default Post all the handles currently present in the
     // system's FileTable
     void post_all_handles();
@@ -311,7 +315,7 @@ extern FileTable& __filetable;
 struct EmbediDummySystemError : public EmbediFileStream
 {
     EmbediDummySystemError() : EmbediFileStream(NOT_BUFFERED)
-    { this->descriptor = {SYSERR_NAME, "", READ | WRITE}; }
+    { this->descriptor = {"DummyErrorStream", "", READ | WRITE}; }
 
     bool write(const TypeMacros::u8 _byte) override { return false; }
     TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override { return 0; }

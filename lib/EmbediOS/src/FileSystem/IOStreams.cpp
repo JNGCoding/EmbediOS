@@ -64,6 +64,18 @@ EmbediFileStream* FileTable::get_handle(const char* streamName)
     return nullptr;
 }
 
+EmbediFileStream* FileTable::get_handle_by_path(const char* streamPath)
+{
+    for (TypeMacros::u32 i = 0; i < this->count; i++)
+    {
+        EmbediFileStream* stream = this->fileHandles[i];
+        if (stream->descriptor.path != nullptr && strcmp(stream->descriptor.path, streamPath) == 0)
+            return stream;
+    }
+
+    return nullptr;
+}
+
 void FileTable::post_all_handles()
 {
     for (TypeMacros::u32 i = 0; i < this->count; i++)
@@ -785,7 +797,7 @@ namespace SystemIO {
     TypeMacros::u8 getchar()
     {
         if (SystemIO::standardInp == nullptr)
-            SystemIO::standardInp = __filetable.get_handle(SYSIN_NAME);
+            SystemIO::standardInp = __filetable.get_handle(SYSIN_INDEX);
 
         assert(SystemIO::standardInp != nullptr && "[SystemIO::getchar()] FATAL ERROR: Standard Input is not defined");
 
@@ -795,7 +807,7 @@ namespace SystemIO {
     TypeMacros::u32 gets(char* buffer, TypeMacros::u32 capSize, const TypeMacros::u32 block_threshold)
     {
         if (SystemIO::standardInp == nullptr)
-            SystemIO::standardInp = __filetable.get_handle(SYSIN_NAME);
+            SystemIO::standardInp = __filetable.get_handle(SYSIN_INDEX);
 
         assert(SystemIO::standardInp != nullptr && "[SystemIO::getchar()] FATAL ERROR: Standard Input is not defined");
 
@@ -822,7 +834,7 @@ namespace SystemIO {
     TypeMacros::u32 printf(const char* format, ...)
     {
         if (SystemIO::standardOut == nullptr)
-            SystemIO::standardOut = __filetable.get_handle(SYSOUT_NAME);
+            SystemIO::standardOut = __filetable.get_handle(SYSOUT_INDEX);
 
         assert(SystemIO::standardOut != nullptr && "[SystemIO::printf(const char*, ...)] FATAL ERROR: Standard Output is not defined");
 
@@ -1025,7 +1037,7 @@ namespace SystemIO {
     TypeMacros::u32 available()
     {
         if (SystemIO::standardInp == nullptr)
-            SystemIO::standardInp = __filetable.get_handle(SYSIN_NAME);
+            SystemIO::standardInp = __filetable.get_handle(SYSIN_INDEX);
 
         assert(SystemIO::standardInp != nullptr && "[SystemIO::available()] FATAL ERROR: Standard Input is not defined");
 
@@ -1035,7 +1047,7 @@ namespace SystemIO {
     void printchar(const TypeMacros::u8 c)
     {
         if (SystemIO::standardOut == nullptr)
-            SystemIO::standardOut = __filetable.get_handle(SYSOUT_NAME);
+            SystemIO::standardOut = __filetable.get_handle(SYSOUT_INDEX);
 
         assert(SystemIO::standardOut != nullptr && "[SystemIO::printchar(const char)] FATAL ERROR: Standard Output is not defined");
 
@@ -1045,7 +1057,7 @@ namespace SystemIO {
     void perror(const char* str)
     {
         if (SystemIO::standardErr == nullptr)
-            SystemIO::standardErr = __filetable.get_handle(SYSERR_NAME);
+            SystemIO::standardErr = __filetable.get_handle(SYSERR_INDEX);
 
         assert(SystemIO::standardErr != nullptr && "[SystemIO::perror(const char*)] FATAL ERROR: Standard Error is not defined");
 
@@ -1055,7 +1067,7 @@ namespace SystemIO {
     void flush()
     {
         if (SystemIO::standardOut == nullptr)
-            SystemIO::standardOut = __filetable.get_handle(SYSOUT_NAME);
+            SystemIO::standardOut = __filetable.get_handle(SYSOUT_INDEX);
 
         assert(SystemIO::standardOut != nullptr && "[SystemIO::printchar(const char)] FATAL ERROR: Standard Output is not defined");
 

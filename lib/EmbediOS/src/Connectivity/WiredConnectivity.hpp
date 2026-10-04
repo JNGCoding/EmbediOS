@@ -36,9 +36,11 @@ public:
                 Serial2.begin(config.speed, config.configuration, config.TX, config.RX, config.inverse);
                 break;
 
-            default:
-                SystemIO::fprintf(SYSERR_NAME, "Can't initialize a Serial port with index %u", index);
-                break;
+            default: {
+                EmbediFileStream* s = __filetable.get_handle(SYSERR_INDEX);
+                if (s != nullptr)
+                    SystemIO::fprintf(s, "Can't initialize a Serial port with index %u", index);
+            } break;
         }
     }
 
@@ -54,8 +56,11 @@ public:
                 Serial2.end();
                 break;
 
-            default:
-                SystemIO::fprintf(SYSERR_NAME, "Can't deinitialize a Serial port with index %u", index);
+            default: {
+                EmbediFileStream* s = __filetable.get_handle(SYSERR_INDEX);
+                if (s != nullptr)
+                    SystemIO::fprintf(s, "Can't deinitialize a Serial port with index %u", index);
+            } break;
         }
     }
 };

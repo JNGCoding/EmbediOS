@@ -13,10 +13,10 @@ define_task(check_input, params) { run_basic_loop_iteration(); }
 task check_input_task = make_task("input_task", check_input, nullptr, 0, MID_PRIORITY);
 
 define_task(post_handles, params) { OS.fileTable.post_all_handles(); }
-task post_handles_task = make_task("post_handles_task", check_input, nullptr, 100, TOP_PRIORITY);
+task post_handles_task = make_task("post_handles_task", post_handles, nullptr, 100, TOP_PRIORITY);
 
 define_task(poll_handles, params) { OS.fileTable.poll_all_handles(); }
-task poll_handles_task = make_task("poll_handles_task", check_input, nullptr, 100, TOP_PRIORITY);
+task poll_handles_task = make_task("poll_handles_task", poll_handles, nullptr, 100, TOP_PRIORITY);
 
 event_loop* eloop;
 
@@ -25,9 +25,10 @@ EmbediDummySystemError err;
 
 void setup()
 {
-    EmbediSerialManager::init_serial(DEFAULT_SERIAL, EmbediSerialConfig{115200, SERIAL_8N1, -1, -1});
-    setup_streams(&uartStream, &uartStream, &err);
+    EmbediSerialManager::init_serial(DEFAULT_SERIAL, EmbediSerialConfig{115200, SERIAL_8N1, -1, -1, false});
+    while (!Serial);
     uartStream.open();
+    setup_streams(&uartStream, &uartStream, &err);
     
     load_starter_functions();
 
@@ -41,6 +42,15 @@ void setup()
 
     pinMode(5, INPUT_PULLUP);
     pinMode(2, OUTPUT);
+
+    Serial.printf("task_vector(size = %zu) {", eloop->tasks->size);
+
+    for (size_t i = 0; i < eloop->tasks->size; i++)
+    {
+        Serial.printf("%s. ", eloop->tasks->vector[i]->name);
+    }
+
+    Serial.printf("}");
 }
 
 void loop()

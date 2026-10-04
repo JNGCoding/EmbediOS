@@ -8,7 +8,7 @@ EmbediUARTStream::EmbediUARTStream(const TypeMacros::u8 index, const TypeMacros:
     if (index == 0)      { this->serial = Serial;  }
     else if (index == 1) { this->serial = Serial2; }
 
-    this->descriptor = {SYSOUT_NAME, "", WRITE | READ};
+    this->descriptor = {"HardwareUARTDuplexStream", ".sys/uart/io/serial_stream", WRITE | READ};
 }
 
 bool EmbediUARTStream::open()

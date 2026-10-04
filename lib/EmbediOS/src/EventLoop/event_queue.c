@@ -47,13 +47,3 @@ event pop_event(event_queue* equeue)
 
     return elem;
 }
-
-void print_event_queue(event_queue* equeue)
-{
-    printf("event_queue(size = %llu) {", equeue->size);
-    for (size_t i = 0; i < equeue->size; i++)
-    {
-        printf("%d ", equeue->events[i]);
-    }
-    printf("}");
-}

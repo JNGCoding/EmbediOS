@@ -7,6 +7,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum event_type_t
 {
     NO_EVENT,
@@ -22,10 +26,6 @@ typedef struct event_t
     event_type type;
     const char* refer;
 } event;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * @brief Returns an instance of event allocated on the stack
@@ -62,11 +62,6 @@ bool push_event(event e, event_queue* equeue);
  * @return event if an event was present else NO_EVENT 
  */
 event pop_event(event_queue* equeue);
-
-/**
- * @brief prints the entire queue
- */
-void print_event_queue(event_queue* equeue);
 
 #ifdef __cplusplus
 }

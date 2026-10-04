@@ -2,7 +2,6 @@
 #define __OS_SETUP_HPP__
 
 #include <Arduino.h>
-#include <SdFat.h>
 
 #include "TypeMacros.hpp"
 #include "FileSystem/IOStreams.hpp"
@@ -51,6 +50,8 @@ CMD_FUNC(dac_set);
 #endif
 
 #ifdef COMPILE_WITH_SD_INITIALIZATION
+
+#include <SdFat.h>
 
 CMD_FUNC(change_directory);
 CMD_FUNC(listdir);

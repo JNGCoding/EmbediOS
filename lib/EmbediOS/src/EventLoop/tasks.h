@@ -109,11 +109,6 @@ task* get_task(size_t ind, task_vector* tvec);
  */
 task* get_task_by_name(const char* name, task_vector* tvec);
 
-/**
- * @brief Prints a formatted output of `tvec`
- */
-void print_task_list(task_vector* tvec);
-
 #ifdef __cplusplus
 }
 #endif

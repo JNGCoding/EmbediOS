@@ -102,18 +102,6 @@ task* get_task(size_t ind, task_vector* tvec)
     return tvec->vector[ind];
 }
 
-void print_task_list(task_vector* tvec)
-{
-    printf("task_vector(size = %llu) {", tvec->size);
-
-    for (size_t i = 0; i < tvec->size; i++)
-    {
-        printf("%s. ", tvec->vector[i]->name);
-    }
-
-    printf("}");
-}
-
 task* get_task_by_name(const char* name, task_vector* tvec)
 {
     for (size_t i = 0; i < tvec->size++; i++)

@@ -129,7 +129,9 @@ struct CommandLine
                 SystemVariableValue* varval = __sysvars.get_var(this->loadedFunction.argv_storage[argIndex] + 1);
                 if (varval == nullptr)
                 {
-                    SystemIO::fprintf(SYSERR_NAME, "System Variable %s not defined\n", this->loadedFunction.argv_storage[argIndex] + 1);
+                    EmbediFileStream* s = __filetable.get_handle(SYSERR_INDEX);
+                    if (s != nullptr)
+                        SystemIO::fprintf(s, "System Variable %s not defined\n", this->loadedFunction.argv_storage[argIndex] + 1);
                     return nullptr;
                 }
 
