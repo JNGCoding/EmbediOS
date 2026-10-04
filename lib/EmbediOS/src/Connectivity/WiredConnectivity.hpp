@@ -16,6 +16,7 @@ struct EmbediSerialConfig
     TypeMacros::u32 configuration;
     TypeMacros::i8 TX;
     TypeMacros::i8 RX;
+    bool inverse;
 };
 
 // This struct provides an easy access to setup the Serial channels of the hardware
@@ -25,51 +26,50 @@ struct EmbediSerialManager
 public:
     static void init_serial(const TypeMacros::u8 index, EmbediSerialConfig config)
     {
-        if (index == 0)
+        switch (index)
         {
-            Serial.begin(config.speed, config.configuration, config.TX, config.RX);
-        }
-        else if (index == 1)
-        {
-            Serial2.begin(config.speed, config.configuration, config.TX, config.RX);
+            case 0:
+                Serial.begin(config.speed, config.configuration, config.TX, config.RX, config.inverse);
+                break;
+
+            case 1:
+                Serial2.begin(config.speed, config.configuration, config.TX, config.RX, config.inverse);
+                break;
+
+            default:
+                SystemIO::fprintf(SYSERR_NAME, "Can't initialize a Serial port with index %u", index);
+                break;
         }
     }
 
     static void deinit_serial(const TypeMacros::u8 index)
     {
-        if (index == 0)
+        switch (index)
         {
-            Serial.end();
-        }
-        else if (index == 1)
-        {
-            Serial2.end();
+            case 0:
+                Serial.end();
+                break;
+
+            case 1:
+                Serial2.end();
+                break;
+
+            default:
+                SystemIO::fprintf(SYSERR_NAME, "Can't deinitialize a Serial port with index %u", index);
         }
     }
 };
 
-// Default Serial STD Output for ease of use
-struct EmbediSerialSystemOutput : public EmbediFileStream
+class EmbediUARTStream : public EmbediFileStream
 {
+private:
     HardwareSerial& serial = Serial;
 
-    EmbediSerialSystemOutput(TypeMacros::u32 index);
-
-    bool write(const TypeMacros::u8 _byte) override;
-    TypeMacros::u32 write(const TypeMacros::u8* _data, TypeMacros::u32 size) override;
-    void flush() override;
-};
-
-// Default Serial STD Input for ease of use
-struct EmbediSerialSystemInput : public EmbediFileStream
-{
-    HardwareSerial& serial = Serial;
-
-    EmbediSerialSystemInput(TypeMacros::u32 index);
-
-    TypeMacros::u8 read() override;
-    TypeMacros::u32 read(TypeMacros::u8* buffer, TypeMacros::u32 size) override;
-    TypeMacros::u32 available() override;
+public:
+    EmbediUARTStream(const TypeMacros::u8 index, const TypeMacros::u32 bufferSize);
+    bool open() override;
+    void post(const TypeMacros::u32 n = IO_POST_SPEED) override;
+    void poll() override;
 };
 
 #endif

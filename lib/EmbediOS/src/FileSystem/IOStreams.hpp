@@ -95,18 +95,18 @@ public:
         WRITE_BUFFER_NULL,
         READ_BUFFER_NULL,
         READ_RINGBUFFER_UNDERFLOW,
-        WRITE_QUEUE_OVERFLOW
+        WRITE_QUEUE_OVERFLOW,
+        NULLPTR_ENCOUNTERED
     };
 
-private:
+protected:
     ErrorCode error;
 
 public:
     FileDescriptor descriptor = {0};
 
     EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : buffered(bufferSize != NOT_BUFFERED), readRingBuffer(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
-    {
-    }
+    {}
 
     virtual ~EmbediFileStream()
     { this->close(); }

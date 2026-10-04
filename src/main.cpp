@@ -7,6 +7,8 @@
 #include <EventLoop/event_queue.h>
 #include <EventLoop/tasks.h>
 
+#include "MySetup.hpp"
+
 define_task(check_input, params) { run_basic_loop_iteration(); }
 task check_input_task = make_task("input_task", check_input, nullptr, 0, MID_PRIORITY);
 
@@ -18,15 +20,15 @@ task poll_handles_task = make_task("poll_handles_task", check_input, nullptr, 10
 
 event_loop* eloop;
 
-EmbediSerialSystemOutput out(DEFAULT_SERIAL);
-EmbediSerialSystemInput inp(DEFAULT_SERIAL);
+EmbediUARTStream uartStream(DEFAULT_SERIAL, 512);
 EmbediDummySystemError err;
 
 void setup()
 {
     EmbediSerialManager::init_serial(DEFAULT_SERIAL, EmbediSerialConfig{115200, SERIAL_8N1, -1, -1});
-    setup_streams(&out, &inp, &err);
-
+    setup_streams(&uartStream, &uartStream, &err);
+    uartStream.open();
+    
     load_starter_functions();
 
     eloop = create_event_loop();
