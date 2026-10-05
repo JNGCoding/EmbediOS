@@ -1,9 +1,6 @@
 #ifndef __EMBEDI_OPERATING_SYSTEM_HPP__
 #define __EMBEDI_OPERATING_SYSTEM_HPP__
 
-#include <FS.h>
-#include <SdFat.h>
-
 #include "TypeMacros.hpp"
 #include "Defines.hpp"
 

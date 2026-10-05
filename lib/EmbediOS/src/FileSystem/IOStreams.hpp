@@ -54,7 +54,8 @@ protected:
     TypeMacros::u8 *readBuffer = nullptr, *writeBuffer = nullptr;
     EmbediRingBuffer<TypeMacros::u8> readRingBuffer;
     EmbediQueue<TypeMacros::u8> writeQueue;
-    const bool buffered;
+    const bool isBuffered;
+    bool isOpened = false;
 
     constexpr bool tx_ready()
     { return this->writeBuffer != nullptr; }
@@ -105,7 +106,7 @@ protected:
 public:
     FileDescriptor descriptor = {0};
 
-    EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : buffered(bufferSize != NOT_BUFFERED), readRingBuffer(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
+    EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : isBuffered(bufferSize != NOT_BUFFERED), readRingBuffer(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
     {}
 
     virtual ~EmbediFileStream()
@@ -113,17 +114,24 @@ public:
 
     // Opens the file stream and allocates the buffers
     virtual bool open()
-    { 
+    {
         return false;
+    }
+
+    // Check if the file handle is opened or not
+    bool opened()
+    {
+        return this->isOpened;
     }
 
     // Closes the file stream and frees the buffers allocated associated to that file
     virtual void close()
     {
-        if (this->buffered)
+        if (this->isBuffered && this->opened())
         {
             this->flush();
             this->destroy_buffers();
+            this->isOpened = false;
         }
     }
 

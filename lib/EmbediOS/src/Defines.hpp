@@ -114,7 +114,7 @@ using DisplayColor = TypeMacros::u16;
 // #define SUPPORTS_DAC
 
 // DEBUG FUNCTIONS
-// #define INCLUDE_DEBUG_FUNCTIONS
+#define INCLUDE_DEBUG_FUNCTIONS
 #ifndef INCLUDE_DEBUG_FUNCTIONS
 #warning Compiling without debug functions, Functions removed: freemem
 #endif

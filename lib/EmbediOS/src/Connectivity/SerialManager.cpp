@@ -1,6 +1,6 @@
 #include "WiredConnectivity.hpp"
 
-EmbediUARTStream::EmbediUARTStream(const TypeMacros::u8 index, const TypeMacros::u32 bufferSize) : EmbediFileStream((bufferSize == 0 ? 1024 : bufferSize))
+EmbediUARTStream::EmbediUARTStream(const char* name, const TypeMacros::u8 index, const TypeMacros::u32 bufferSize) : EmbediFileStream((bufferSize == 0 ? 1024 : bufferSize))
 {
     if (bufferSize == 0)
         SystemIO::perror("[EmbediUARTStream::EmbediUARTStream(u8, u32)] WARNING: bufferSize provided is 0, defaulting to 1024 bytes size buffers.");
@@ -8,12 +8,17 @@ EmbediUARTStream::EmbediUARTStream(const TypeMacros::u8 index, const TypeMacros:
     if (index == 0)      { this->serial = Serial;  }
     else if (index == 1) { this->serial = Serial2; }
 
-    this->descriptor = {"HardwareUARTDuplexStream", ".sys/uart/io/serial_stream", WRITE | READ};
+    this->descriptor = {
+        name,
+        ".sys/uart/io/serial_stream",
+        WRITE | READ
+    };
 }
 
 bool EmbediUARTStream::open()
 {
-    return this->allocate_buffers();
+    this->isOpened = this->allocate_buffers();
+    return this->isOpened;
 }
 
 void EmbediUARTStream::post(const TypeMacros::u32 n)

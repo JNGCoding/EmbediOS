@@ -90,15 +90,30 @@ void ARDUINO_ISR_ATTR interrupt_vm()
 }
 
 // Load the stdout, stdin, stderr in the file table
+// Also calls the open() method of the streams automatically
 void setup_streams(EmbediFileStream* out, EmbediFileStream* inp, EmbediFileStream* err)
 {
     OS.outputStream = out;
     OS.inputStream = inp;
     OS.errorStream = err;
 
-    if (out != nullptr) OS.fileTable.push(out);
-    if (inp != nullptr) OS.fileTable.push(inp);
-    if (err != nullptr) OS.fileTable.push(err);
+    if (out != nullptr) {
+        OS.fileTable.push(out);
+        if (!out->opened())
+            out->open();
+    }
+
+    if (inp != nullptr) {
+        OS.fileTable.push(inp);
+        if (!inp->opened())
+            inp->open();
+    }
+
+    if (err != nullptr) {
+        OS.fileTable.push(err);
+        if (!err->opened())
+            err->open();
+    }
 }
 
 // Load basic functions into the Command line
@@ -120,27 +135,27 @@ void load_starter_functions()
 // pinmode_set, pinout_set, pinread, .... etc. Look the manual for more info
 void load_gpio_functions()
 {
-    OS.terminal.register_function("pinmode_set", pin_mode_set);
-    OS.terminal.register_function("pinout_set", pin_out_set);
+    OS.terminal.register_function("pindir", pin_mode_set);
+    OS.terminal.register_function("pinset", pin_out_set);
     OS.terminal.register_function("pinread", print_pin_read);
 
 #ifdef SUPPORTS_PWM
 
-    OS.terminal.register_function("pwmpin_set", pwm_pin_set);
+    OS.terminal.register_function("pinpwm", pwm_pin_set);
     OS.terminal.register_function("pwmwrite", pwm_set);
 
 #endif
 
 #ifdef SUPPORTS_ADC
 
-    OS.terminal.register_function("adcpin_set", adc_pin_set);
+    OS.terminal.register_function("pinadc", adc_pin_set);
     OS.terminal.register_function("adcread", print_adc_pin_read);
 
 #endif
 
 #ifdef SUPPORTS_DAC
 
-    OS.terminal.register_function("dacpin_set", dac_pin_set);
+    OS.terminal.register_function("pindac", dac_pin_set);
     OS.terminal.register_function("dacwrite", dac_set);
 
 #endif

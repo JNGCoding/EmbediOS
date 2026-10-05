@@ -25,10 +25,11 @@ EmbediDummySystemError err;
 void setup()
 {
     EmbediBluetoothManager::init_bluetooth(EmbediBluetoothConfig{"EmbediOS_SerialInput"});
-    bleStream.open();
     setup_streams(&bleStream, &bleStream, &err);
     
     load_starter_functions();
+    load_gpio_functions();
+    load_debug_functions();
 
     eloop = create_event_loop();
 
@@ -37,8 +38,7 @@ void setup()
     submit_task_to_loop(&poll_handles_task, eloop);
 
     OS.systemVariables.create("VERSION", VERSION);
-
-    pinMode(2, OUTPUT);
+    OS.systemVariables.create("MASTER", "Dhruv");
 }
 
 void loop()

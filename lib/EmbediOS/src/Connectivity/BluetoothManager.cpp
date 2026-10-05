@@ -17,7 +17,8 @@ EmbediBluetoothStream::EmbediBluetoothStream(const TypeMacros::u32 bufferSize) :
 
 bool EmbediBluetoothStream::open()
 {
-    return this->allocate_buffers();
+    this->isOpened = this->allocate_buffers();
+    return this->isOpened;
 }
 
 void EmbediBluetoothStream::post(const TypeMacros::u32 n)

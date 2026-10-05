@@ -61,15 +61,8 @@ constexpr TypeMacros::u32 Gbps(double x) { return 1000 * Mbps(x); }
 
 inline bool string_equals(const char* s1, const char* s2) { return strcmp(s1, s2) == 0; }
 
-constexpr bool is_space(const char ch)
-{
-    return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0';
-}
-
-constexpr bool is_digit(const char ch)
-{
-    return (ch >= '0' && ch <= '9');
-}
+constexpr bool is_space(const char ch) { return ch == ' ' || ch == '\t' || ch == '\v' || ch == '\r' || ch == '\f' || ch == '\n' || ch == '\0'; }
+constexpr bool is_digit(const char ch) { return (ch >= '0' && ch <= '9'); }
 
 #ifndef embedi_max
 #define embedi_max(x, y) (((x) > (y)) ? (x) : (y))
