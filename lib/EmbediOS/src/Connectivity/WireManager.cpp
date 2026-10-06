@@ -46,3 +46,54 @@ void EmbediWireStream::post(const TypeMacros::u32 n)
 
 void poll()
 {}
+
+TypeMacros::u8 EmbediWireStream::request(const TypeMacros::u8 reg)
+{
+    Wire.beginTransmission(this->addr);
+    
+    Wire.write(reg);
+    Wire.requestFrom(reg, 1);
+
+    Wire.endTransmission(false);
+
+    TypeMacros::u32 start = millis();
+
+    while (millis() - start <= WireStream_BlockThreshold)
+    {
+        if (Wire.available() > 0)
+        {
+            this->error = ErrorCode::NO_ERROR;
+            return Wire.read();
+        }
+    }
+
+    this->error = ErrorCode::READ_RINGBUFFER_UNDERFLOW;
+    return 0;
+}
+
+TypeMacros::u32 EmbediWireStream::requestBytes(const TypeMacros::u8 reg, TypeMacros::u8* buf, const TypeMacros::u32 num)
+{
+    Wire.beginTransmission(this->addr);
+    
+    Wire.write(reg);
+    Wire.requestFrom(reg, 1);
+
+    Wire.endTransmission(false);
+
+    TypeMacros::u32 start = millis();
+    TypeMacros::u32 appind = 0;
+    TypeMacros::u32 bytesProcessed = 0;
+
+    while (millis() - start <= WireStream_BlockThreshold)
+    {
+        if (Wire.available() > 0)
+        {
+            this->error = ErrorCode::NO_ERROR;
+            buf[appind] = Wire.read();
+            start = millis();
+            bytesProcessed++;
+        }
+    }
+
+    return bytesProcessed++;
+}

@@ -10,6 +10,12 @@
 
 constexpr TypeMacros::u32 DEFAULT_SERIAL = 0;
 
+enum class BitOrder
+{
+    MSB_FIRST,
+    LSB_FIRST
+};
+
 // Serial Config object
 // Holds configuration for initializing the serial
 struct EmbediSerialConfig
@@ -23,7 +29,7 @@ struct EmbediSerialConfig
 
 // Wire Config object
 // Holds configuration for initializing the i2c
-enum class WireChannelType
+enum class ChannelType
 {
     SENDER,
     RECEIVER
@@ -32,7 +38,7 @@ enum class WireChannelType
 struct EmbediWireConfig
 {
     TypeMacros::u32 speed;
-    WireChannelType channel_type;
+    ChannelType channel_type;
     TypeMacros::u8 addr;
 };
 
@@ -50,6 +56,7 @@ struct EmbediSPIConfig
 {
     TypeMacros::u32 speed;
     SPIMode mode;
+    BitOrder bitOrder;
     TypeMacros::u8 mosi, miso, sck;
 };
 
@@ -105,7 +112,7 @@ struct EmbediWireManager
 {
     static void init_i2c(EmbediWireConfig& config)
     {
-        if (config.channel_type == WireChannelType::SENDER)
+        if (config.channel_type == ChannelType::SENDER)
         {
             Wire.begin();
             Wire.setClock(config.speed);
@@ -130,6 +137,7 @@ struct EmbediSPIManager
     {
         SPI.begin(config.sck, config.miso, config.mosi);
         SPI.setFrequency(config.speed);
+        SPI.setBitOrder((config.bitOrder == BitOrder::MSB_FIRST ? MSBFIRST : LSBFIRST));
 
         switch (config.mode)
         {
@@ -154,13 +162,25 @@ struct EmbediSPIManager
                 SPI.setDataMode(SPI_MODE0);
                 break;
         }
+
+        globalConfiguration = config;
     }
 
     static void deinit_spi()
     {
         SPI.end();
     }
+
+    static const EmbediSPIConfig get_global_config()
+    {
+        return globalConfiguration;
+    }
+
+private:
+    static EmbediSPIConfig globalConfiguration;
 };
+
+constexpr TypeMacros::u32 WireStream_BlockThreshold = 50;
 
 class EmbediWireStream : public EmbediFileStream
 {
@@ -172,15 +192,25 @@ public:
     bool open() override;
     void post(const TypeMacros::u32 n = IO_POST_SPEED) override;
     void poll() override;
+
+    TypeMacros::u8 request(const TypeMacros::u8 reg);
+    TypeMacros::u32 requestBytes(const TypeMacros::u8 reg, TypeMacros::u8* buf, const TypeMacros::u32 num);
 };
 
 class EmbediSPIStream : public EmbediFileStream
 {
 private:
-    const TypeMacros::u8 cs_pin;
+    const TypeMacros::u8 cs;
+    const bool csActive;
+
+    EmbediSPIConfig config = EmbediSPIManager::get_global_config();
+
+    void activate_device();
+    void deactivate_device();
 
 public:
-    EmbediSPIStream(const char* name, const TypeMacros::u8 _cs, const TypeMacros::u32 bufferSize);
+    EmbediSPIStream(const char* name, const TypeMacros::u8 _cs, const bool _active_sig, const TypeMacros::u32 bufferSize);
+    void set_config(EmbediSPIConfig config);
     bool open() override;
     void post(const TypeMacros::u32 n = IO_POST_SPEED) override;
     void poll() override;

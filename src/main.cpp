@@ -26,7 +26,7 @@ void setup()
 {
     EmbediBluetoothManager::init_bluetooth(EmbediBluetoothConfig{"EmbediOS_SerialInput"});
     setup_streams(&bleStream, &bleStream, &err);
-    
+
     load_starter_functions();
     load_gpio_functions();
     load_debug_functions();
