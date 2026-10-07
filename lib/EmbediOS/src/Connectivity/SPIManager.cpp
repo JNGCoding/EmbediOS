@@ -8,7 +8,7 @@ inline void EmbediSPIStream::activate_device()
 inline void EmbediSPIStream::deactivate_device()
 { digitalWrite(this->cs, (this->csActive ? LOW : HIGH)); }
 
-EmbediSPIStream::EmbediSPIStream(const char* name, const TypeMacros::u8 _cs, const bool cs_active, const TypeMacros::u32 bufferSize) : cs(_cs), csActive(cs_active), EmbediFileStream((bufferSize != NOT_BUFFERED ? bufferSize : 1024))
+EmbediSPIStream::EmbediSPIStream(const char* name, const TypeMacros::u8 _cs, const bool cs_active, const TypeMacros::u32 bufferSize) : cs(_cs), csActive(cs_active), EmbediFileStream((bufferSize != NOT_BUFFERED ? bufferSize : 1024), true, false)
 {
     this->descriptor = {
         name,
@@ -33,7 +33,7 @@ bool EmbediSPIStream::open()
     return this->isOpened;
 }
 
-void EmbediSPIStream::post(const TypeMacros::u32 n = IO_POST_SPEED)
+void EmbediSPIStream::post(const TypeMacros::u32 n)
 {
     if (this->tx_ready() && this->opened())
     {

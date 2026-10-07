@@ -39,7 +39,7 @@ struct EmbediWireConfig
 {
     TypeMacros::u32 speed;
     ChannelType channel_type;
-    TypeMacros::u8 addr;
+    TypeMacros::u8 recvaddr;
 };
 
 // SPI Config object
@@ -110,7 +110,7 @@ public:
 // Allowing for quick startup
 struct EmbediWireManager
 {
-    static void init_i2c(EmbediWireConfig& config)
+    static void init_i2c(EmbediWireConfig config)
     {
         if (config.channel_type == ChannelType::SENDER)
         {
@@ -119,7 +119,7 @@ struct EmbediWireManager
         }
         else
         {
-            Wire.begin(config.addr);
+            Wire.begin(config.recvaddr);
         }
     }
 
@@ -193,8 +193,19 @@ public:
     void post(const TypeMacros::u32 n = IO_POST_SPEED) override;
     void poll() override;
 
+    // Requests one byte from the device, after setting (writing) `reg` of the device
+    // It is blocking, with a ms timeout threshold of `WireStream_BlockThreshold`
+    // Holds the databus online (calls Wire.endTransmission(false))
     TypeMacros::u8 request(const TypeMacros::u8 reg);
-    TypeMacros::u32 requestBytes(const TypeMacros::u8 reg, TypeMacros::u8* buf, const TypeMacros::u32 num);
+
+    // Requests one byte from the device
+    // It is blocking, with a ms timeout threshold of `WireStream_BlockThreshold`
+    TypeMacros::u8 request();
+
+    // Requests `num` bytes from the device, after setting (writing) `reg` of the device
+    // It is blocking, with a ms timeout threshold of `WireStream_BlockThreshold`
+    // Holds the databus online (calls Wire.endTransmission(false))
+    TypeMacros::u32 requestBytes(const TypeMacros::u8 reg, TypeMacros::u8* buf, const TypeMacros::u8 num);
 };
 
 class EmbediSPIStream : public EmbediFileStream

@@ -1,6 +1,6 @@
 #include "WiredConnectivity.hpp"
 
-EmbediWireStream::EmbediWireStream(const char* name, const TypeMacros::u8 _addr, const TypeMacros::u32 bufferSize) : addr(_addr), EmbediFileStream((bufferSize != NOT_BUFFERED ? 1024 : bufferSize))
+EmbediWireStream::EmbediWireStream(const char* name, const TypeMacros::u8 _addr, const TypeMacros::u32 bufferSize) : addr(_addr), EmbediFileStream((bufferSize != NOT_BUFFERED ? 1024 : bufferSize), true, false)
 {
     if (bufferSize == NOT_BUFFERED)
         SystemIO::perror("[EmbediWireStream::EmbediWireStream(u8, u32)] ERROR: BUFFER_SIZE PROVIDED WAS 0, DEFAULTING TO 1024 BYTES.");
@@ -44,17 +44,16 @@ void EmbediWireStream::post(const TypeMacros::u32 n)
     else this->error = ErrorCode::WRITE_BUFFER_NULL;
 }
 
-void poll()
+void EmbediWireStream::poll()
 {}
 
 TypeMacros::u8 EmbediWireStream::request(const TypeMacros::u8 reg)
 {
     Wire.beginTransmission(this->addr);
-    
-    Wire.write(reg);
-    Wire.requestFrom(reg, 1);
-
+    Wire.write(reg);    
     Wire.endTransmission(false);
+
+    Wire.requestFrom(this->addr, static_cast<TypeMacros::u8>(1));
 
     TypeMacros::u32 start = millis();
 
@@ -67,33 +66,48 @@ TypeMacros::u8 EmbediWireStream::request(const TypeMacros::u8 reg)
         }
     }
 
-    this->error = ErrorCode::READ_RINGBUFFER_UNDERFLOW;
+    this->error = ErrorCode::TIMEOUT;
     return 0;
 }
 
-TypeMacros::u32 EmbediWireStream::requestBytes(const TypeMacros::u8 reg, TypeMacros::u8* buf, const TypeMacros::u32 num)
+TypeMacros::u8  EmbediWireStream::request()
 {
-    Wire.beginTransmission(this->addr);
-    
-    Wire.write(reg);
-    Wire.requestFrom(reg, 1);
-
-    Wire.endTransmission(false);
-
+    Wire.requestFrom(this->addr, static_cast<TypeMacros::u8>(1));
     TypeMacros::u32 start = millis();
-    TypeMacros::u32 appind = 0;
-    TypeMacros::u32 bytesProcessed = 0;
 
     while (millis() - start <= WireStream_BlockThreshold)
     {
         if (Wire.available() > 0)
         {
             this->error = ErrorCode::NO_ERROR;
-            buf[appind] = Wire.read();
-            start = millis();
-            bytesProcessed++;
+            return Wire.read();
         }
     }
 
-    return bytesProcessed++;
+    this->error = ErrorCode::TIMEOUT;
+    return 0;
+}
+
+TypeMacros::u32 EmbediWireStream::requestBytes(const TypeMacros::u8 reg, TypeMacros::u8* buf, const TypeMacros::u8 num)
+{
+    Wire.beginTransmission(this->addr);
+    Wire.write(reg);    
+    Wire.endTransmission(false);
+
+    Wire.requestFrom(this->addr, num);
+
+    TypeMacros::u32 start = millis();
+    TypeMacros::u32 appind = 0;
+
+    while (millis() - start <= WireStream_BlockThreshold && appind < num)
+    {
+        if (Wire.available() > 0)
+        {
+            this->error = ErrorCode::NO_ERROR;
+            buf[appind++] = Wire.read();
+            start = millis();
+        }
+    }
+
+    return appind;
 }

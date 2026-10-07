@@ -57,6 +57,8 @@ protected:
     const bool isBuffered;
     bool isOpened = false;
 
+    TypeMacros::u8 allocationOptions;
+
     constexpr bool tx_ready()
     { return this->writeBuffer != nullptr; }
 
@@ -65,13 +67,25 @@ protected:
 
     bool allocate_buffers()
     {
-        this->writeBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->writeQueue.cap_size()));
-        this->readBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->writeQueue.cap_size()));
+        if ((this->allocationOptions & 0b1) != 0)
+        {
+            this->writeBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->writeQueue.cap_size()));
+            if (this->writeBuffer == nullptr)
+                return false;
 
-        this->writeQueue.set_buffer(this->writeBuffer);
-        this->readRingBuffer.set_buffer(this->readBuffer);
+            this->writeQueue.set_buffer(this->writeBuffer);
+        }
 
-        return this->writeBuffer != nullptr && this->readBuffer != nullptr;
+        if ((this->allocationOptions & 0b10) != 0)
+        {
+            this->readBuffer = static_cast<TypeMacros::u8*>(basicAllocator.alloc(this->writeQueue.cap_size()));
+            if (this->readBuffer == nullptr)
+                return false;
+
+            this->readRingBuffer.set_buffer(this->readBuffer);
+        }
+
+        return true;
     }
 
     void destroy_buffers()
@@ -97,7 +111,8 @@ public:
         READ_BUFFER_NULL,
         READ_RINGBUFFER_UNDERFLOW,
         WRITE_QUEUE_OVERFLOW,
-        NULLPTR_ENCOUNTERED
+        NULLPTR_ENCOUNTERED,
+        TIMEOUT
     };
 
 protected:
@@ -106,8 +121,14 @@ protected:
 public:
     FileDescriptor descriptor = {0};
 
-    EmbediFileStream(TypeMacros::u32 bufferSize = NOT_BUFFERED) : isBuffered(bufferSize != NOT_BUFFERED), readRingBuffer(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
-    {}
+    EmbediFileStream(const TypeMacros::u32 bufferSize = NOT_BUFFERED, const bool allocateWRBuf = true, const bool allocateRDBuf = true) : isBuffered(bufferSize != NOT_BUFFERED), readRingBuffer(nullptr, bufferSize), writeQueue(nullptr, bufferSize)
+    {
+        this->allocationOptions = 0;
+        if (allocateWRBuf)
+            this->allocationOptions |= 0b1;
+        if (allocateRDBuf)
+            this->allocationOptions |= 0b10;
+    }
 
     virtual ~EmbediFileStream()
     { this->close(); }
@@ -122,6 +143,18 @@ public:
     bool opened()
     {
         return this->isOpened;
+    }
+
+    // Get error code of the file stream
+    ErrorCode error_flag()
+    {
+        return this->error;
+    }
+
+    // Reset error flag to `NO_ERROR`
+    void reset_error_flag()
+    {
+        this->error = ErrorCode::NO_ERROR;
     }
 
     // Closes the file stream and frees the buffers allocated associated to that file
