@@ -22,12 +22,6 @@ event_loop* eloop;
 EmbediBluetoothStream bleStream(512);
 EmbediDummySystemError err;
 
-EmbediWireStream gpioExpander("PCF8574", 0x20, 128);
-
-// #define ALMIGHTY_OS
-
-#ifdef ALMIGHTY_OS
-
 void setup()
 {
     EmbediBluetoothManager::init_bluetooth(EmbediBluetoothConfig{"EmbediOS_SerialInput"});
@@ -55,27 +49,3 @@ void loop()
     SystemIO::perror("[LOOP] FATAL ERROR: SCHEDULER EXITED, RESTARTING MACHINE NOW\n");
     ESP.restart();
 }
-
-#else
-
-void setup()
-{
-    EmbediWireManager::init_i2c(EmbediWireConfig{Kbps(400), ChannelType::SENDER, 0x00});
-    gpioExpander.open();
-}
-
-TypeMacros::u8 data = 0;
-
-void loop()
-{
-    // Write only P0–P2 as counter, keep P3–P7 HIGH
-    TypeMacros::u8 outByte = (data & 0x07) | 0xF8;  // 0xF8 = 11111000
-
-    gpioExpander.write(outByte);
-    gpioExpander.post();
-
-    data = (data + 1) % 8;  // cycle 0–7
-    delay(200);             // slower for visibility
-}
-
-#endif
