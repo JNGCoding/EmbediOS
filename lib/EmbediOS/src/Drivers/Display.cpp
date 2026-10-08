@@ -2,123 +2,79 @@
 
 #ifdef COMPILE_WITH_DISPLAY_INITIALIZATION
 
-EmbediDisplay::EmbediDisplay()
-{}
-
-void EmbediDisplay::set_rotation(const Rotation r)
+DrawableFrameBuffer::DrawableFrameBuffer(const u16 w, const u16 h, EmbediAllocator* alloc = &basicAllocator) : width(w), height(h)
 {
-    this->rotated = r;
+    this->allocator = (alloc == nullptr ? &basicAllocator : alloc);
+    if (alloc == nullptr)
+        SystemIO::perror("[DrawableFrameBuffer::DrawableFrameBuffer(u16, u16)] ERROR : ALLOCATOR PROVIDED WAS NULL, DEFAULTING TO basicAllocator.");
+
+    this->buffer = static_cast<DisplayColor*>(this->allocator->alloc(sizeof(DisplayColor) * this->width * this->height));
+    if (this->buffer)
+        SystemIO::perror("[DrawableFrameBuffer::DrawableFrameBuffer(u16, u16)] ERROR : FAILED TO ALLOCATE FRAMEBUFFER, ALL OPERATIONS OF FRAMEBUFFER ARE USELESS");
 }
 
-void EmbediDisplay::set_inverse(const bool ni)
+DrawableFrameBuffer::~DrawableFrameBuffer()
+{
+    if (this->buffer != nullptr)
+        this->allocator->destroy(this->buffer);
+}
+
+void DrawableFrameBuffer::set_rotation(const Rotation r)
+{
+    this->rotation = r;
+}
+
+void DrawableFrameBuffer::set_inverse(const bool ni)
 {
     this->inverse = ni;
 }
 
-void EmbediDisplay::set_cursor(const u16 x, const u16 y)
+void DrawableFrameBuffer::set_cursor(const u16 x, const u16 y)
 {
     this->cursorX = x;
     this->cursorY = y;
 }
 
-void EmbediDisplay::set_font_color(const DisplayColor color)
+void DrawableFrameBuffer::set_font_color(const DisplayColor color)
 {
     this->fontColor = color;
 }
 
-const DisplayColor& EmbediDisplay::get_pixel(const u16 x, const u16 y)
+void DrawableFrameBuffer::set_font(EmbediFont& f)
 {
-    return *this->frameBuffer.get(this->coords(x, y));
+    this->font = f;
 }
 
-void EmbediDisplay::pixel(const u16 x, const u16 y, const DisplayColor color)
+void DrawableFrameBuffer::draw_pixel(const u16 x, const u16 y, const DisplayColor c)
 {
     if (this->out_of_bounds(x, y))
         return;
     
-    switch (this->rotated)
+    switch (this->rotation)
     {
-        case R0:
-            this->frameBuffer.place(this->coords(x, y), (this->inverse ? ~color : color));
+        case Rotation::R0:
+            this->buffer[this->coords(x, y)] = (this->inverse ? ~c : c);
             break;
             
-        case R90:
-            this->frameBuffer.place(this->coords(this->width() - 1 - y, x), (this->inverse ? ~color : color));
+        case Rotation::R90:
+            this->buffer[this->coords(this->vwidth() - 1 - y, x)] = (this->inverse ? ~c : c);
             break;
 
-        case R180:
-            this->frameBuffer.place(this->coords(this->width() - 1 - x, this->height() - 1 - y), (this->inverse ? ~color : color));
+        case Rotation::R180:
+            this->buffer[this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y)] = (this->inverse ? ~c : c);
             break;
 
-        case R270:
-            this->frameBuffer.place(this->coords(y, this->height() - 1 - x), (this->inverse ? ~color : color));
+        case Rotation::R270:
+            this->buffer[this->coords(y, this->vheight() - 1 - x)] = (this->inverse ? ~c : c);
             break;
 
         default:
-            this->frameBuffer.place(this->coords(x, y), (this->inverse ? ~color : color));
+            this->buffer[this->coords(x, y)] = (this->inverse ? ~c : c);
+            break;
     }
 }
 
-void EmbediDisplay::printc(const char character)
-{
-    if (this->cursorX > this->width())
-        return;
-    
-    if (this->cursorY > this->height())
-        return;
-
-    const u16 bytesPerRow = ceil(this->font.char_width / 8);
-    const u8* charPtr = this->font.chars + (static_cast<int>(character) * this->font.char_height * bytesPerRow);
-
-    u16 currentChar = 0;
-
-    u16 dx = this->cursorX;
-    u16 dy = this->cursorY;
-
-    for (u16 row = 0; row < this->font.char_height; row++)
-    {
-        u16 bitsProcessed = 0;
-
-        for (u16 byteInd = 0; byteInd < bytesPerRow; byteInd++)
-        {
-            u8 byte = charPtr[byteInd + (row * this->font.char_height)];
-
-            for (u16 i = 0; i < embedi_min(this->font.char_width, 8); i++)
-            {
-                if (bitsProcessed >= this->font.char_width)
-                    break;
-
-                if ((byte & (1 << i)) != 0)
-                    this->pixel(dx, dy, this->fontColor);
-                
-                dx++;
-                bitsProcessed++;
-            }
-        }
-
-        dy++;
-    }
-
-    this->cursorX += this->font.char_width + 1;
-    this->cursorY += this->font.char_height + 1;
-}
-
-void EmbediDisplay::print(const char* text)
-{
-    while (*text != 0)
-    {
-        this->printc(*text);
-        text++;
-    }
-}
-
-void EmbediDisplay::println(const char* text)
-{
-    this->print(text);
-    this->printc('\n');
-}
-
-void EmbediDisplay::rect(const u16 x, const u16 y, const u16 w, const u16 h, const bool fill,const DisplayColor color)
+void DrawableFrameBuffer::draw_rect(const u16 x, const u16 y, const u16 w, const u16 h, const DisplayColor c, const bool fill = false)
 {
     if (this->out_of_bounds(x, y))
         return;
@@ -126,34 +82,30 @@ void EmbediDisplay::rect(const u16 x, const u16 y, const u16 w, const u16 h, con
     if (w == 0 || h == 0)
         return;
     
-    u16 fx = (w + x > this->width() ? this->width() : w + x);
-    u16 fy = (h + y > this->height() ? this->width() : h + y);
+    u16 fx = (w + x > this->vwidth() ? this->vwidth() : w + x);
+    u16 fy = (h + y > this->vheight() ? this->vheight() : h + y);
 
     if (fill)
     {
         for (u16 dx = x; dx < fx; dx++)
-        {
             for (u16 dy = y; dy < fy; dy++)
-            {
-                this->pixel(dx, dy, color);
-            }
-        }
+                this->draw_pixel(dx, dy, c);
     }
     else
     {
-        this->hline(x, y, fx - 1, false, color);
-        this->hline(x, fy, fx - 1, false, color);
-        this->vline(x, y, fy - 1, false, color);
-        this->vline(fx, y, fy - 1, false, color);
+        this->draw_hline(x, y, fx - 1, c);
+        this->draw_hline(x, fy, fx - 1, c);
+        this->draw_vline(x, y, fy - 1, c);
+        this->draw_vline(fx, y, fy - 1, c);
     }
 }
 
-void EmbediDisplay::square(const u16 x, const u16 y, const u16 s, const bool fill, const DisplayColor color)
+void DrawableFrameBuffer::draw_square(const u16 x, const u16 y, const u16 side, const DisplayColor c, const bool fill = false)
 {
-    this->rect(x, y, s, s, fill, color);
+    this->draw_rect(x, y, side, side, c, fill);
 }
 
-void EmbediDisplay::circle(const u16 x, const u16 y, const u16 r, const bool fill,const DisplayColor color)
+void DrawableFrameBuffer::draw_circle(const u16 x, const u16 y, const u16 r, const DisplayColor c, const bool fill = false)
 {
     if (this->out_of_bounds(x, y))
         return;
@@ -170,10 +122,10 @@ void EmbediDisplay::circle(const u16 x, const u16 y, const u16 r, const bool fil
         {
             while (dx <= dy)
             {
-                this->hline(x - dx, y + dy, 2 * dx + 1, false, color);
-                this->hline(x - dx, y - dy, 2 * dx + 1, false, color);
-                this->hline(x - dx, y + dy, 2 * dy + 1, false, color);
-                this->hline(x - dx, y - dy, 2 * dy + 1, false, color);
+                this->draw_hline(x - dx, y + dy, 2 * dx + 1, c);
+                this->draw_hline(x - dx, y - dy, 2 * dx + 1, c);
+                this->draw_hline(x - dx, y + dy, 2 * dy + 1, c);
+                this->draw_hline(x - dx, y - dy, 2 * dy + 1, c);
             }
 
             if (d > 0)
@@ -190,14 +142,14 @@ void EmbediDisplay::circle(const u16 x, const u16 y, const u16 r, const bool fil
         }
         else
         {
-            this->pixel(cx + px, cy + py, color);
-            this->pixel(cx - px, cy + py, color);
-            this->pixel(cx + px, cy - py, color);
-            this->pixel(cx - px, cy - py, color);
-            this->pixel(cx + py, cy + px, color);
-            this->pixel(cx + py, cy - px, color);
-            this->pixel(cx - py, cy + px, color);
-            this->pixel(cx - py, cy - px, color);
+            this->draw_pixel(cx + px, cy + py, c);
+            this->draw_pixel(cx - px, cy + py, c);
+            this->draw_pixel(cx + px, cy - py, c);
+            this->draw_pixel(cx - px, cy - py, c);
+            this->draw_pixel(cx + py, cy + px, c);
+            this->draw_pixel(cx + py, cy - px, c);
+            this->draw_pixel(cx - py, cy + px, c);
+            this->draw_pixel(cx - py, cy - px, c);
         }
     };
 
@@ -221,7 +173,7 @@ void EmbediDisplay::circle(const u16 x, const u16 y, const u16 r, const bool fil
     }
 }
 
-void EmbediDisplay::line(const u16 x, const u16 y, const u16 x1, const u16 y1,const DisplayColor color)
+void DrawableFrameBuffer::draw_line(const u16 x, const u16 y, const u16 x1, const u16 y1, const DisplayColor c)
 {
     const i16 deltax = embedi_abs(static_cast<i16>(x1) - static_cast<i16>(x));
     const i16 deltay = -embedi_abs(static_cast<i16>(y1) - static_cast<i16>(y));
@@ -239,7 +191,7 @@ void EmbediDisplay::line(const u16 x, const u16 y, const u16 x1, const u16 y1,co
 
     while (true)
     {
-        this->pixel(x, y, color);
+        this->draw_pixel(x, y, c);
         if (dx == fx && dy == fy)
             break;
 
@@ -258,115 +210,141 @@ void EmbediDisplay::line(const u16 x, const u16 y, const u16 x1, const u16 y1,co
     }
 }
 
-void EmbediDisplay::hline(const u16 x, const u16 y, const u16 w, const bool reversed,const DisplayColor color)
-{
-    if (w == 0)
-        return;
-        
-    if (reversed)
-    {
-        const u16 fx = (w + x > this->width() ? this->width() : w + x);
-
-        for (u16 dx = x; dx < fx; dx++)
-            this->pixel(dx, y, color);
-    }
-    else if (reversed)
-    {
-        const u16 fx = (x - w <= 0 ? 0 : x - w);
-
-        for (i16 dx = x; dx < fx; dx--)
-        {
-            this->pixel(dx, y, color);
-            if (dx == 0) break;
-        }
-    }
-}
-
-void EmbediDisplay::vline(const u16 x, const u16 y, const u16 h, const bool reversed,const DisplayColor color)
+void DrawableFrameBuffer::draw_vline(const u16 x, const u16 y, const u16 h, const DisplayColor c)
 {
     if (h == 0)
         return;
 
-    if (reversed)
-    {
-        const u16 fy = (h + y > this->height() ? this->height() : h + y);
+    const u16 fy = (y + h >= this->vheight() ? this->vheight() : y + h);
 
-        for (u16 dy = y; dy < fy; dy++)
-            this->pixel(x, dy, color);
-    }
-    else
-    {
-        const u16 fy = (y - h < 0 ? 0 : y - h);
+    for (u16 dy = y; dy < fy; dy++)
+        this->draw_pixel(x, dy, c);
+}
 
-        for (u16 dy = y; dy < fy; dy--)
+void DrawableFrameBuffer::draw_hline(const u16 x, const u16 y, const u16 w, const DisplayColor c)
+{
+    if (w == 0)
+        return;
+
+    const u16 fx = (x + w >= this->vwidth() ? this->vwidth() : x + w);
+
+    for (i16 dx = x; dx < fx; dx++)
+        this->draw_pixel(dx, y, c);
+}
+
+void DrawableFrameBuffer::draw_char(const char c)
+{
+    if (this->cursorX > this->vwidth())
+        return;
+    
+    if (this->cursorY > this->vheight())
+        return;
+
+    const u16 bytesPerRow = ceil(this->font.char_width / 8);
+    const u8* charPtr = this->font.chars + (static_cast<int>(c) * this->font.char_height * bytesPerRow);
+
+    u16 currentChar = 0;
+
+    u16 dx = this->cursorX;
+    u16 dy = this->cursorY;
+
+    for (u16 row = 0; row < this->font.char_height; row++)
+    {
+        u16 bitsProcessed = 0;
+
+        for (u16 byteInd = 0; byteInd < bytesPerRow; byteInd++)
         {
-            this->pixel(x, dy, color);
-            if (dy == 0) break;
+            u8 byte = charPtr[byteInd + (row * this->font.char_height)];
+
+            for (u16 i = 0; i < embedi_min(this->font.char_width, 8); i++)
+            {
+                if (bitsProcessed >= this->font.char_width)
+                    break;
+
+                if ((byte & (1 << i)) != 0)
+                    this->draw_pixel(dx, dy, this->fontColor);
+                
+                dx++;
+                bitsProcessed++;
+            }
         }
+
+        dy++;
+    }
+
+    this->cursorX += this->font.char_width + 1;
+    this->cursorY += this->font.char_height + 1;
+}
+
+void DrawableFrameBuffer::draw_text(const char* cstr)
+{
+    while (*cstr != 0)
+    {
+        this->draw_char(*cstr);
+        cstr++;
     }
 }
 
-
-void EmbediDisplay::draw_next_line()
+void DrawableFrameBuffer::fill_screen(const DisplayColor c)
 {
-    this->display.pushImage(0, this->currentLine, DISPLAY_WIDTH, 1, this->frameBuffer.get_buf());
-    this->currentLine = (this->currentLine + 1) % DISPLAY_HEIGHT;
+    memset(this->buffer, c, sizeof(c) * this->vwidth() * this->vheight());
+}
+
+const u16 DrawableFrameBuffer::vwidth() const
+{
+    switch (this->rotation)
+    {
+        case Rotation::R0:
+            return this->width;
+        
+        case Rotation::R90:
+            return this->height;
+        
+        case Rotation::R180:
+            return this->width;
+
+        case Rotation::R270:
+            return this->height;
+
+        default:
+            return this->width;
+    }
+}
+
+const u16 DrawableFrameBuffer::vheight() const
+{
+    switch (this->rotation)
+    {
+        case Rotation::R0:
+            return this->height;
+        
+        case Rotation::R90:
+            return this->width;
+        
+        case Rotation::R180:
+            return this->height;
+
+        case Rotation::R270:
+            return this->width;
+
+        default:
+            return this->height;
+    }
+}
+
+EmbediDisplay::EmbediDisplay(const u16 dw, const u16 dh, DrawableFrameBuffer& _fb) : displayWidth(dw), displayHeight(dh), fb(_fb)
+{}
+
+void EmbediDisplay::update_next_line()
+{
+    this->post_line();
+    this->currentLine = (this->currentLine + 1) % this->displayHeight;
 }
 
 void EmbediDisplay::update()
 {
-    this->display.pushImage(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, this->frameBuffer.get_buf());
+    this->post_fb();
     this->currentLine = 0;
 }
-
-void EmbediDisplay::clear(const DisplayColor color)
-{
-    this->frameBuffer.objset(color);
-}
-
-// This function returns the virtual width of the screen
-const u16 EmbediDisplay::width()
-{
-    switch (this->rotated)
-    {
-        case R0:
-            return DISPLAY_WIDTH;
-        
-        case R90:
-            return DISPLAY_HEIGHT;
-        
-        case R180:
-            return DISPLAY_WIDTH;
-
-        case R270:
-            return DISPLAY_HEIGHT;
-
-        default:
-            return DISPLAY_WIDTH;
-    }
-}
-
-// This function returns the virtual height of the screen
-const u16 EmbediDisplay::height()
-{
-    switch (this->rotated)
-    {
-        case R0:
-            return DISPLAY_HEIGHT;
-        
-        case R90:
-            return DISPLAY_WIDTH;
-        
-        case R180:
-            return DISPLAY_HEIGHT;
-
-        case R270:
-            return DISPLAY_WIDTH;
-
-        default:
-            return DISPLAY_HEIGHT;
-    }
-}
-
 
 #endif

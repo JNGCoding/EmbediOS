@@ -76,10 +76,6 @@ constexpr TypeMacros::u32 IO_POST_SPEED = 32;
 
 #ifdef COMPILE_WITH_DISPLAY_INITIALIZATION
 
-constexpr TypeMacros::u32 DISPLAY_WIDTH = 160;
-
-constexpr TypeMacros::u32 DISPLAY_HEIGHT = 128;
-
 // Pixel Color formats
 using RGB565 = TypeMacros::u16;
 using RGB888 = TypeMacros::u32;
