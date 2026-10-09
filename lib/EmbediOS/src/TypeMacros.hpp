@@ -51,6 +51,14 @@ namespace TypeMacros
     using emtime = usize;
 };
 
+// Creating my own same type checker at compile time
+template<typename U, typename V>
+struct __embedi_is_same_type { static constexpr bool value = false; };
+template<typename U>
+struct __embedi_is_same_type<U, U> { static constexpr bool value = true; };
+template<typename U, typename V>
+inline constexpr bool is_same_type_v = __embedi_is_same_type<U, V>::value;
+
 constexpr TypeMacros::u32 Kb(double x) { return 1024 * x; }
 constexpr TypeMacros::u32 Mb(double x) { return 1024 * Kb(x); }
 constexpr TypeMacros::u64 Gb(double x) { return 1024 * Mb(x); }

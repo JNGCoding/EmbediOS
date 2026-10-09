@@ -49,6 +49,10 @@ void DrawableFrameBuffer::draw_pixel(const u16 x, const u16 y, const DisplayColo
 {
     if (this->out_of_bounds(x, y))
         return;
+
+    if constexpr (is_same_type_v<DisplayColor, Binary>)
+    {
+    }
     
     switch (this->rotation)
     {

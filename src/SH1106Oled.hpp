@@ -60,7 +60,10 @@ public:
     EmbediSH1106(DrawableFrameBuffer& _fb) :
         EmbediDisplay(128, 64, _fb),
         wire("SH1106", 0x3C, 64)
-    {}
+    {
+        this->wire.set_post_policy(PostingPolicy::MANUAL_POST);
+        this->wire.set_poll_policy(PollingPolicy::MANUAL_POLL);
+    }
 
     ~EmbediSH1106()
     {
@@ -72,9 +75,6 @@ public:
     {
         if (!EmbediWireManager::is_initialized())
             EmbediWireManager::init_i2c(EmbediWireConfig{Kbps(400), ChannelType::SENDER, 0x00});
-
-        this->wire.set_post_policy(PostingPolicy::MANUAL_POST);
-        this->wire.set_poll_policy(PollingPolicy::MANUAL_POLL);
 
         SystemIO::open_file(&this->wire);
 
