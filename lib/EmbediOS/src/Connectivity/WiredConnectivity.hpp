@@ -121,12 +121,23 @@ struct EmbediWireManager
         {
             Wire.begin(config.recvaddr);
         }
+
+        initialized = true;
     }
 
     static void deinit_i2c()
     {
         Wire.end();
+        initialized = false;
     }
+
+    static const bool is_initialized()
+    {
+        return initialized;
+    }
+
+private:
+    static bool initialized;
 };
 
 // This struct provides an easy access to setup the SPI Serial channels of the hardware

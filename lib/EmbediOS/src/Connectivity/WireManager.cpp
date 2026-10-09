@@ -1,5 +1,7 @@
 #include "WiredConnectivity.hpp"
 
+bool EmbediWireManager::initialized = false;
+
 EmbediWireStream::EmbediWireStream(const char* name, const TypeMacros::u8 _addr, const TypeMacros::u32 bufferSize) : addr(_addr), EmbediFileStream((bufferSize != NOT_BUFFERED ? 1024 : bufferSize), true, false)
 {
     if (bufferSize == NOT_BUFFERED)

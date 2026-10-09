@@ -77,11 +77,13 @@ constexpr TypeMacros::u32 IO_POST_SPEED = 32;
 #ifdef COMPILE_WITH_DISPLAY_INITIALIZATION
 
 // Pixel Color formats
+using Binary = TypeMacros::u8;
+using RGB242 = TypeMacros::u8;
 using RGB565 = TypeMacros::u16;
 using RGB888 = TypeMacros::u32;
 using RGBA   = TypeMacros::u32;
 
-using DisplayColor = TypeMacros::u16;
+using DisplayColor = Binary;
 
 #endif
 

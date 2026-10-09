@@ -48,6 +48,17 @@ struct FileDescriptor
 // This is buffered
 constexpr TypeMacros::u32 NOT_BUFFERED = 0U;
 
+// posting and polling policies
+enum class PostingPolicy {
+    AUTO_POST,
+    MANUAL_POST
+};
+
+enum class PollingPolicy {
+    AUTO_POLL,
+    MANUAL_POLL
+};
+
 class EmbediFileStream
 {
 protected:
@@ -103,6 +114,9 @@ protected:
         this->readRingBuffer.set_buffer(nullptr);
     }
 
+    PostingPolicy postingPolicy = PostingPolicy::AUTO_POST;
+    PollingPolicy pollingPolicy = PollingPolicy::AUTO_POLL;
+
 public:
     enum class ErrorCode : TypeMacros::u8
     {
@@ -143,6 +157,30 @@ public:
     bool opened()
     {
         return this->isOpened;
+    }
+
+    // Set the posting policy of this file stream
+    void set_post_policy(PostingPolicy p)
+    {
+        this->postingPolicy = p;
+    }
+
+    // Set the polling policy of this file stream
+    void set_poll_policy(PollingPolicy p)
+    {
+        this->pollingPolicy = p;
+    }
+
+    // Get the posting policy of file stream
+    const PostingPolicy posting_policy()
+    {
+        return this->postingPolicy;
+    }
+
+    // Get the polling policy of file stream
+    const PollingPolicy polling_policy()
+    {
+        return this->pollingPolicy;
     }
 
     // Get error code of the file stream

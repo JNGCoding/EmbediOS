@@ -81,13 +81,21 @@ EmbediFileStream* FileTable::get_handle_by_path(const char* streamPath)
 void FileTable::post_all_handles()
 {
     for (TypeMacros::u32 i = 0; i < this->count; i++)
-        this->fileHandles[i]->post();
+    {
+        EmbediFileStream* stream = this->fileHandles[i];
+        if (stream->posting_policy() == PostingPolicy::AUTO_POST)
+            stream->post();
+    }
 }
 
 void FileTable::poll_all_handles()
 {
     for (TypeMacros::u32 i = 0; i < this->count; i++)
-        this->fileHandles[i]->poll();
+    {
+        EmbediFileStream* stream = this->fileHandles[i];
+        if (stream->polling_policy() == PollingPolicy::AUTO_POLL)
+            stream->poll();
+    }
 }
 
 // SDCard File Stream implementation
