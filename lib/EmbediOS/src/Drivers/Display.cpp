@@ -2,13 +2,18 @@
 
 #ifdef COMPILE_WITH_DISPLAY_INITIALIZATION
 
-DrawableFrameBuffer::DrawableFrameBuffer(const u16 w, const u16 h, EmbediAllocator* alloc = &basicAllocator) : width(w), height(h)
+DrawableFrameBuffer::DrawableFrameBuffer(const u16 w, const u16 h, EmbediAllocator* alloc) : width(w), height(h)
 {
     this->allocator = (alloc == nullptr ? &basicAllocator : alloc);
     if (alloc == nullptr)
         SystemIO::perror("[DrawableFrameBuffer::DrawableFrameBuffer(u16, u16)] ERROR : ALLOCATOR PROVIDED WAS NULL, DEFAULTING TO basicAllocator.");
 
-    this->buffer = static_cast<DisplayColor*>(this->allocator->alloc(sizeof(DisplayColor) * this->width * this->height));
+    if constexpr (is_same_type_v<DisplayColor, Binary>) {
+        this->buffer = static_cast<DisplayColor*>(this->allocator->alloc(sizeof(DisplayColor) * this->width * this->height));
+    } else {
+        this->buffer = static_cast<DisplayColor*>(this->allocator->alloc((this->width * this->height) / 8));  // We are assuming that a byte is really a byte i.e 1 size
+    }
+
     if (this->buffer)
         SystemIO::perror("[DrawableFrameBuffer::DrawableFrameBuffer(u16, u16)] ERROR : FAILED TO ALLOCATE FRAMEBUFFER, ALL OPERATIONS OF FRAMEBUFFER ARE USELESS");
 }
@@ -52,33 +57,67 @@ void DrawableFrameBuffer::draw_pixel(const u16 x, const u16 y, const DisplayColo
 
     if constexpr (is_same_type_v<DisplayColor, Binary>)
     {
-    }
-    
-    switch (this->rotation)
-    {
-        case Rotation::R0:
-            this->buffer[this->coords(x, y)] = (this->inverse ? ~c : c);
-            break;
+        u32 ind;
+
+        switch (this->rotation)
+        {
+            case Rotation::R0:
+                ind = this->coords(x, y);
+                break;
             
-        case Rotation::R90:
-            this->buffer[this->coords(this->vwidth() - 1 - y, x)] = (this->inverse ? ~c : c);
-            break;
+            case Rotation::R90:
+                ind = this->coords(this->vwidth() - 1 - y, x);
+                break;
 
-        case Rotation::R180:
-            this->buffer[this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y)] = (this->inverse ? ~c : c);
-            break;
+            case Rotation::R180:
+                ind = this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y);
+                break;
 
-        case Rotation::R270:
-            this->buffer[this->coords(y, this->vheight() - 1 - x)] = (this->inverse ? ~c : c);
-            break;
+            case Rotation::R270:
+                ind = this->coords(y, this->vheight() - 1 - x);
+                break;
 
-        default:
-            this->buffer[this->coords(x, y)] = (this->inverse ? ~c : c);
-            break;
+            default:
+                ind = this->coords(x, y);
+                break;
+        }
+
+        u32 byteIndex = ind / 8;
+        u32 bitIndex = ind % 8;
+
+        DisplayColor value = c ^ this->inverse;
+
+        // Clear the byte first -> then place the bit that we want to place
+        this->buffer[byteIndex] = (this->buffer[byteIndex] & ~(1 << bitIndex)) | (value << bitIndex);
+    }
+    else
+    {
+        switch (this->rotation)
+        {
+            case Rotation::R0:
+                this->buffer[this->coords(x, y)] = (this->inverse ? ~c : c);
+                break;
+                
+            case Rotation::R90:
+                this->buffer[this->coords(this->vwidth() - 1 - y, x)] = (this->inverse ? ~c : c);
+                break;
+
+            case Rotation::R180:
+                this->buffer[this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y)] = (this->inverse ? ~c : c);
+                break;
+
+            case Rotation::R270:
+                this->buffer[this->coords(y, this->vheight() - 1 - x)] = (this->inverse ? ~c : c);
+                break;
+
+            default:
+                this->buffer[this->coords(x, y)] = (this->inverse ? ~c : c);
+                break;
+        }
     }
 }
 
-void DrawableFrameBuffer::draw_rect(const u16 x, const u16 y, const u16 w, const u16 h, const DisplayColor c, const bool fill = false)
+void DrawableFrameBuffer::draw_rect(const u16 x, const u16 y, const u16 w, const u16 h, const DisplayColor c, const bool fill)
 {
     if (this->out_of_bounds(x, y))
         return;
@@ -104,12 +143,12 @@ void DrawableFrameBuffer::draw_rect(const u16 x, const u16 y, const u16 w, const
     }
 }
 
-void DrawableFrameBuffer::draw_square(const u16 x, const u16 y, const u16 side, const DisplayColor c, const bool fill = false)
+void DrawableFrameBuffer::draw_square(const u16 x, const u16 y, const u16 side, const DisplayColor c, const bool fill)
 {
     this->draw_rect(x, y, side, side, c, fill);
 }
 
-void DrawableFrameBuffer::draw_circle(const u16 x, const u16 y, const u16 r, const DisplayColor c, const bool fill = false)
+void DrawableFrameBuffer::draw_circle(const u16 x, const u16 y, const u16 r, const DisplayColor c, const bool fill)
 {
     if (this->out_of_bounds(x, y))
         return;
@@ -291,7 +330,147 @@ void DrawableFrameBuffer::draw_text(const char* cstr)
 
 void DrawableFrameBuffer::fill_screen(const DisplayColor c)
 {
-    memset(this->buffer, c, sizeof(c) * this->vwidth() * this->vheight());
+    if constexpr (is_same_type_v<DisplayColor, Binary>)
+    {
+        memset(this->buffer, (c != 0 ? 0xFF : 0x00), (this->vwidth() * this->vheight()) / 8);
+    }
+    else
+        memset(this->buffer, c, sizeof(DisplayColor) * this->vwidth() * this->vheight());
+}
+
+const DisplayColor DrawableFrameBuffer::get_color(u16 x, u16 y) const
+{
+    if (this->out_of_bounds(x, y))
+        return DisplayColor{};
+
+    if constexpr (is_same_type_v<DisplayColor, Binary>)
+    {
+        u32 ind;
+
+        switch (this->rotation)
+        {
+            case Rotation::R0:
+                ind = this->coords(x, y);
+                break;
+            
+            case Rotation::R90:
+                ind = this->coords(this->vwidth() - 1 - y, x);
+                break;
+
+            case Rotation::R180:
+                ind = this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y);
+                break;
+
+            case Rotation::R270:
+                ind = this->coords(y, this->vheight() - 1 - x);
+                break;
+
+            default:
+                ind = this->coords(x, y);
+                break;
+        }
+
+        u32 byteIndex = ind / 8;
+        u32 bitIndex = ind % 8;
+
+        return (this->buffer[byteIndex] & (1 << bitIndex)) != 0 ? 1 : 0;
+    }
+    else
+    {
+        DisplayColor c = 0;
+
+        switch (this->rotation)
+        {
+            case Rotation::R0:
+                c = this->buffer[this->coords(x, y)];
+                break;
+                
+            case Rotation::R90:
+                c = this->buffer[this->coords(this->vwidth() - 1 - y, x)];
+                break;
+
+            case Rotation::R180:
+                c = this->buffer[this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y)];
+                break;
+
+            case Rotation::R270:
+                c = this->buffer[this->coords(y, this->vheight() - 1 - x)];
+                break;
+
+            default:
+                c = this->buffer[this->coords(x, y)];
+                break;
+        }
+
+        return c;
+    }
+}
+
+const DisplayColor DrawableFrameBuffer::get_value(u16 x, u16 y) const
+{
+    if (this->out_of_bounds(x, y))
+        return DisplayColor{};
+
+    if constexpr (is_same_type_v<DisplayColor, Binary>)
+    {
+        u32 ind;
+
+        switch (this->rotation)
+        {
+            case Rotation::R0:
+                ind = this->coords(x, y);
+                break;
+            
+            case Rotation::R90:
+                ind = this->coords(this->vwidth() - 1 - y, x);
+                break;
+
+            case Rotation::R180:
+                ind = this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y);
+                break;
+
+            case Rotation::R270:
+                ind = this->coords(y, this->vheight() - 1 - x);
+                break;
+
+            default:
+                ind = this->coords(x, y);
+                break;
+        }
+
+        u32 byteIndex = ind / 8;
+
+        return this->buffer[byteIndex];
+    }
+    else
+    {
+        DisplayColor c = 0;
+
+        switch (this->rotation)
+        {
+            case Rotation::R0:
+                c = this->buffer[this->coords(x, y)];
+                break;
+                
+            case Rotation::R90:
+                c = this->buffer[this->coords(this->vwidth() - 1 - y, x)];
+                break;
+
+            case Rotation::R180:
+                c = this->buffer[this->coords(this->vwidth() - 1 - x, this->vheight() - 1 - y)];
+                break;
+
+            case Rotation::R270:
+                c = this->buffer[this->coords(y, this->vheight() - 1 - x)];
+                break;
+
+            default:
+                c = this->buffer[this->coords(x, y)];
+                break;
+        }
+
+        return c;
+    }
 }
 
 const u16 DrawableFrameBuffer::vwidth() const

@@ -114,6 +114,12 @@ public:
     // Clear the screen with color `c`
     void fill_screen(const DisplayColor c);
 
+    // Get the color value at `(x, y)` coordinates
+    const DisplayColor get_color(u16 x, u16 y) const;
+
+    // Get the pixel value at `(x, y)` coordinates
+    const DisplayColor get_value(u16 x, u16 y) const;
+
     // Returns the effective width of the frame buffer
     const u16 vwidth() const;
 

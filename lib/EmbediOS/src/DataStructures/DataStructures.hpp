@@ -1432,7 +1432,7 @@ public:
         memset(this->buffer, 0, CAPACITY * sizeof(T));
     }
 
-    void objset(T obj)
+    void obj_write(T obj)
     {
         memset(this->buffer, obj, CAPACITY * sizeof(T));
     }
@@ -1456,9 +1456,28 @@ private:
 
 public:
     // Initializes the queue with `buffer` and its capacity a.k.a `cap`
-    EmbediQueue(T* buffer, const TypeMacros::u32 cap) : capacity(cap)
+    explicit EmbediQueue(T* buffer, const TypeMacros::u32 cap) : capacity(cap)
     {
         this->buf = buffer;
+    }
+
+    // Copies the entire `queue` state into this instance,
+    // Returns false if `queue` capacity is not equal to this instance's capacity 
+    // Returns true if operation was successfull
+    bool copy(const EmbediQueue& queue)
+    {
+        if (this->cap_size() != queue.cap_size())
+            return false;
+
+        for (TypeMacros::u32 i = 0; i < embedi_min(queue.cap_size(), this->cap_size()); i++) {
+            this->buf[i] = queue.buf[i];
+        }
+
+        this->writeptr = queue.writeptr;
+        this->readptr = queue.readptr;
+        this->count = queue.count;
+
+        return true;
     }
 
     // Changes the internal buffer to `buf` and resets the internal
